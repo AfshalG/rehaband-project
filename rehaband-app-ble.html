@@ -396,6 +396,16 @@
 
     <button class="connect-btn" id="demoBtn" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); margin-top: 8px;">Try Demo Mode</button>
 
+    <!-- Session Controls Section -->
+    <div class="session-controls" style="margin: 12px; background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+        <h3 style="font-size: 14px; color: #333; margin-bottom: 12px; font-weight: 600; text-align: center;">Session Controls</h3>
+        <div style="display: flex; gap: 8px;">
+            <button class="connect-btn" id="startResetBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Start Session</button>
+            <button class="connect-btn" id="calibrateBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Calibrate (5 Reps)</button>
+        </div>
+        <div style="font-size: 10px; color: #666; text-align: center; margin-top: 8px; font-style: italic;">Connect to device to enable session controls</div>
+    </div>
+
     <div class="error-message" id="errorMessage"></div>
 
     <div class="instructions">
@@ -455,6 +465,7 @@
                 <button class="control-btn" id="soundToggleBtn" style="width: auto; padding: 0 12px; border-radius: 6px;">ON</button>
             </div>
         </div>
+
     </div>
 
     <div class="rep-list">
@@ -468,10 +479,14 @@
 
     <script>
         let device, server, service;
-        let romChar, speedChar, jerkinessChar, repCountChar;
+        let romChar, speedChar, jerkinessChar, repCountChar, sessionControlChar;
         let repsData = [];
         let sessionStartTime;
         let lastRepCount = 0;
+        let isSessionActive = false;
+        let isCalibrating = false;
+        let calibrationData = [];
+        let calibrationCount = 0;
 
         // Settings variables
         let settings = {
@@ -488,6 +503,7 @@
         const noRepsMessage = document.getElementById('noRepsMessage');
 
         const demoBtn = document.getElementById('demoBtn');
+        const startResetBtn = document.getElementById('startResetBtn');
 
         // Settings elements
         const romDecBtn = document.getElementById('romDecBtn');
@@ -498,9 +514,13 @@
         const speedValue = document.getElementById('speedValue');
         const soundToggleBtn = document.getElementById('soundToggleBtn');
         const demoDisclaimer = document.getElementById('demoDisclaimer');
+        const calibrateBtn = document.getElementById('calibrateBtn');
+        const sessionControlsStatus = document.querySelector('.session-controls div:last-child');
 
         connectBtn.addEventListener('click', connectToDevice);
         demoBtn.addEventListener('click', startDemoMode);
+        startResetBtn.addEventListener('click', toggleSession);
+        calibrateBtn.addEventListener('click', startCalibration);
 
         // Settings event listeners
         romDecBtn.addEventListener('click', () => adjustSetting('rom', -5));
@@ -541,6 +561,13 @@
                 speedChar = await service.getCharacteristic(0x2A38);
                 jerkinessChar = await service.getCharacteristic(0x2A39);
                 repCountChar = await service.getCharacteristic(0x2A3A);
+                
+                // Try to get session control characteristic (may not exist in older Arduino versions)
+                try {
+                    sessionControlChar = await service.getCharacteristic(0x2A3B);
+                } catch (error) {
+                    console.log('Session control characteristic not available:', error.message);
+                }
 
                 // Start notifications
                 statusText.textContent = 'Starting notifications...';
@@ -552,6 +579,15 @@
                 statusText.textContent = 'Connected';
                 connectBtn.textContent = 'Connected ✓';
                 connectBtn.style.background = '#16a34a';
+                
+                // Enable session controls
+                startResetBtn.disabled = false;
+                startResetBtn.style.opacity = '1';
+                startResetBtn.style.cursor = 'pointer';
+                calibrateBtn.disabled = false;
+                calibrateBtn.style.opacity = '1';
+                calibrateBtn.style.cursor = 'pointer';
+                sessionControlsStatus.textContent = 'Ready to start session or calibrate';
                 
                 sessionStartTime = Date.now();
                 updateDuration();
@@ -597,6 +633,12 @@
         }
 
         function addRepCard(repNum, rom, speed, jerkiness) {
+            // Handle calibration mode
+            if (isCalibrating) {
+                handleCalibrationRep(rom, speed, jerkiness);
+                return; // Don't show individual rep cards during calibration
+            }
+            
             // Hide "no reps" message
             noRepsMessage.style.display = 'none';
             
@@ -726,6 +768,27 @@
             connectBtn.textContent = 'Connect to REHABAND';
             connectBtn.style.background = '';
             
+            // Disable session controls
+            startResetBtn.disabled = true;
+            startResetBtn.style.opacity = '0.5';
+            startResetBtn.style.cursor = 'not-allowed';
+            calibrateBtn.disabled = true;
+            calibrateBtn.style.opacity = '0.5';
+            calibrateBtn.style.cursor = 'not-allowed';
+            sessionControlsStatus.textContent = 'Connect to device to enable session controls';
+            
+            // Reset session state
+            isSessionActive = false;
+            startResetBtn.textContent = 'Start Session';
+            startResetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            
+            // Reset calibration state
+            if (isCalibrating) {
+                isCalibrating = false;
+                calibrateBtn.textContent = 'Calibrate (5 Reps)';
+                calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }
+            
             // Reset session data
             sessionStartTime = null;
             lastRepCount = 0;
@@ -738,6 +801,154 @@
 
         function hideError() {
             errorMessage.style.display = 'none';
+        }
+
+        // Session Control Functions
+        async function toggleSession() {
+            if (!isSessionActive) {
+                // Start session
+                isSessionActive = true;
+                startResetBtn.textContent = 'Reset Session';
+                startResetBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+                
+                // Send start command to Arduino
+                if (sessionControlChar) {
+                    try {
+                        await sessionControlChar.writeValue(new Uint8Array([1])); // 1 = start session
+                        console.log('Start session command sent to Arduino');
+                    } catch (error) {
+                        console.error('Failed to send start command:', error);
+                    }
+                }
+                
+                // Reset local session data
+                repsData = [];
+                lastRepCount = 0;
+                sessionStartTime = Date.now();
+                updateDuration();
+                updateSummary();
+                
+                // Clear rep history display
+                repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">Session started! Begin exercising to see data.</div>';
+                
+                sessionControlsStatus.textContent = 'Session active - exercising...';
+                showError('Session started! Current angle set as reference position.');
+                setTimeout(hideError, 3000);
+                
+            } else {
+                // Reset session
+                isSessionActive = false;
+                startResetBtn.textContent = 'Start Session';
+                startResetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                
+                // Send reset command to Arduino
+                if (sessionControlChar) {
+                    try {
+                        await sessionControlChar.writeValue(new Uint8Array([0])); // 0 = reset session
+                        console.log('Reset session command sent to Arduino');
+                    } catch (error) {
+                        console.error('Failed to send reset command:', error);
+                    }
+                }
+                
+                // Reset session data
+                repsData = [];
+                lastRepCount = 0;
+                sessionStartTime = Date.now();
+                updateSummary();
+                
+                // Reset stats display
+                document.getElementById('totalReps').textContent = '0';
+                document.getElementById('goodReps').textContent = '0';
+                document.getElementById('avgAngle').textContent = '--';
+                
+                // Clear rep history display
+                repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">Session reset. Start exercising to see data!</div>';
+                
+                sessionControlsStatus.textContent = 'Ready to start session or calibrate';
+                showError('Session reset successfully!');
+                setTimeout(hideError, 3000);
+            }
+        }
+
+        // Calibration Functions
+        async function startCalibration() {
+            if (!device || !device.gatt.connected) {
+                showError('Please connect to REHABAND device first');
+                return;
+            }
+            
+            if (isCalibrating) {
+                showError('Calibration already in progress');
+                return;
+            }
+            
+            isCalibrating = true;
+            calibrationData = [];
+            calibrationCount = 0;
+            
+            calibrateBtn.textContent = 'Calibrating... (0/5)';
+            calibrateBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            calibrateBtn.disabled = true;
+            sessionControlsStatus.textContent = 'Calibrating... Perform 5 good form reps';
+            
+            // Clear previous data
+            repsData = [];
+            lastRepCount = 0;
+            
+            // Clear rep history
+            repContainer.innerHTML = '<div style="text-align: center; color: #667eea; font-size: 12px; padding: 20px;">Calibration in progress... Perform 5 good form reps.</div>';
+            
+            showError('Calibration started! Perform 5 repetitions with good form.');
+        }
+
+        function handleCalibrationRep(rom, speed, jerkiness) {
+            if (!isCalibrating) return;
+            
+            calibrationCount++;
+            calibrationData.push({ rom, speed, jerkiness });
+            
+            calibrateBtn.textContent = `Calibrating... (${calibrationCount}/5)`;
+            
+            if (calibrationCount >= 5) {
+                completeCalibration();
+            }
+        }
+
+        function completeCalibration() {
+            if (calibrationData.length < 5) return;
+            
+            // Calculate averages
+            const avgROM = Math.round(calibrationData.reduce((sum, rep) => sum + rep.rom, 0) / calibrationData.length);
+            const avgSpeed = parseFloat((calibrationData.reduce((sum, rep) => sum + rep.speed, 0) / calibrationData.length).toFixed(1));
+            
+            // Update settings with calibrated values
+            settings.targetROM = avgROM;
+            settings.speedTarget = avgSpeed;
+            
+            // Update display
+            updateSettingDisplay('rom', avgROM);
+            updateSettingDisplay('speed', avgSpeed);
+            
+            // Save to localStorage
+            saveSettings();
+            
+            // Reset calibration state
+            isCalibrating = false;
+            calibrateBtn.textContent = 'Calibrate (5 Reps)';
+            calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            calibrateBtn.disabled = false;
+            sessionControlsStatus.textContent = 'Calibration complete! Ready for sessions';
+            
+            // Reset rep data
+            repsData = [];
+            lastRepCount = 0;
+            
+            // Clear rep history
+            repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">Calibration complete! Start exercising to see data!</div>';
+            
+            showError(`Calibration complete! New targets: ${avgROM}° ROM, ${avgSpeed}s speed`);
+            setTimeout(hideError, 5000);
         }
 
         // Demo Mode Functions
