@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REHABAND App - BLE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            max-width: 375px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+        }
+        
+        .session-type {
+            font-size: 10px;
+            background: rgba(255,255,255,0.25);
+            padding: 4px 8px;
+            border-radius: 10px;
+        }
+        
+        .status {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #ef4444;
+            border-radius: 50%;
+            margin-right: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background: #4ade80;
+        }
+
+        .connect-btn {
+            width: calc(100% - 24px);
+            margin: 12px;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .connect-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .connect-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .summary {
+            background: white;
+            padding: 14px 16px;
+            margin: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .summary h2 {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .duration {
+            font-size: 11px;
+            color: #667eea;
+            background: #e0e7ff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 8px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .stat.updated {
+            background: #e0e7ff;
+            transform: scale(1.05);
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .rep-list {
+            padding: 0 12px 16px;
+        }
+        
+        .rep-list h3 {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .rep-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .rep-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .rep-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .rep-number {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .rep-icon {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .overall-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .badge-good {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .badge-caution {
+            background: #fef9c3;
+            color: #ca8a04;
+        }
+        
+        .badge-bad {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: #fafafa;
+            border-radius: 6px;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .metric-value {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 5px;
+        }
+        
+        .value-good {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .value-caution {
+            background: #fef9c3;
+            color: #ca8a04;
+        }
+        
+        .value-bad {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            margin: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .instructions {
+            background: #f0f9ff;
+            color: #0369a1;
+            padding: 12px;
+            margin: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <h1>REHABAND</h1>
+            <span class="session-type">Live Session</span>
+        </div>
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Not Connected</span>
+        </div>
+    </div>
+
+    <button class="connect-btn" id="connectBtn">Connect to REHABAND</button>
+
+    <button class="connect-btn" id="demoBtn" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); margin-top: 0;">Try Demo Mode</button>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="instructions">
+        <strong>Instructions:</strong><br>
+        <strong>Real Device:</strong> Make sure your Arduino Nano 33 BLE is running the REHABAND sketch, then click "Connect to REHABAND"<br>
+        <strong>Demo:</strong> Click "Try Demo Mode" to see the interface with simulated data
+    </div>
+
+    <div class="summary">
+        <div class="summary-header">
+            <h2>Session Summary</h2>
+            <span class="duration" id="duration">0 mins</span>
+        </div>
+        <div class="stats">
+            <div class="stat" id="totalRepsStat">
+                <div class="stat-value" id="totalReps">0</div>
+                <div class="stat-label">Total Reps</div>
+            </div>
+            <div class="stat" id="goodRepsStat">
+                <div class="stat-value" id="goodReps">0</div>
+                <div class="stat-label">Good Form</div>
+            </div>
+            <div class="stat" id="avgAngleStat">
+                <div class="stat-value" id="avgAngle">--</div>
+                <div class="stat-label">Avg Angle</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rep-list">
+        <h3>Rep History</h3>
+        <div id="repContainer">
+            <div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">
+                No reps yet. Start exercising to see data!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let device, server, service;
+        let romChar, speedChar, jerkinessChar, repCountChar;
+        let repsData = [];
+        let sessionStartTime;
+        let lastRepCount = 0;
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const repContainer = document.getElementById('repContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const noRepsMessage = document.getElementById('noRepsMessage');
+
+        const demoBtn = document.getElementById('demoBtn');
+
+        connectBtn.addEventListener('click', connectToDevice);
+        demoBtn.addEventListener('click', startDemoMode);
+
+        // Check if Web Bluetooth is supported
+        if (!navigator.bluetooth) {
+            showError('Web Bluetooth is not supported. Please use Chrome or Edge browser.');
+            connectBtn.disabled = true;
+        }
+
+        async function connectToDevice() {
+            try {
+                hideError();
+                connectBtn.disabled = true;
+                connectBtn.textContent = 'Connecting...';
+
+                // Request device
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'REHABAND' }],
+                    optionalServices: ['180d']
+                });
+
+                // Connect to GATT server
+                statusText.textContent = 'Connecting to device...';
+                server = await device.gatt.connect();
+                
+                // Get service
+                statusText.textContent = 'Getting service...';
+                service = await server.getPrimaryService('180d');
+
+                // Get characteristics
+                statusText.textContent = 'Getting characteristics...';
+                romChar = await service.getCharacteristic('2a37');
+                speedChar = await service.getCharacteristic('2a38');
+                jerkinessChar = await service.getCharacteristic('2a39');
+                repCountChar = await service.getCharacteristic('2a3a');
+
+                // Start notifications
+                statusText.textContent = 'Starting notifications...';
+                await repCountChar.startNotifications();
+                repCountChar.addEventListener('characteristicvaluechanged', handleRepCountChange);
+
+                // Connection successful
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+                connectBtn.textContent = 'Connected ✓';
+                connectBtn.style.background = '#16a34a';
+                
+                sessionStartTime = Date.now();
+                updateDuration();
+
+                // Add disconnect handler
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                console.log('Successfully connected to REHABAND device');
+
+            } catch (error) {
+                console.error('Connection failed:', error);
+                showError(`Connection failed: ${error.message}`);
+                resetConnectionState();
+            }
+        }
+
+        async function handleRepCountChange(event) {
+            try {
+                const repNumber = event.target.value.getUint8(0);
+                
+                // Only process if it's a new rep
+                if (repNumber > lastRepCount && repNumber <= 10) {
+                    lastRepCount = repNumber;
+                    
+                    // Read other characteristics
+                    const romValue = await romChar.readValue();
+                    const speedValue = await speedChar.readValue();
+                    const jerkinessValue = await jerkinessChar.readValue();
+
+                    const rom = romValue.getUint8(0);
+                    const speed = speedValue.getFloat32(0, true);
+                    const jerkiness = jerkinessValue.getUint8(0);
+
+                    console.log(`Rep ${repNumber}: ROM=${rom}°, Speed=${speed}s, Jerkiness=${jerkiness}`);
+                    
+                    addRepCard(repNumber, rom, speed, jerkiness);
+                    updateSummary();
+                }
+            } catch (error) {
+                console.error('Error handling rep data:', error);
+                showError(`Error reading rep data: ${error.message}`);
+            }
+        }
+
+        function addRepCard(repNum, rom, speed, jerkiness) {
+            // Hide "no reps" message
+            noRepsMessage.style.display = 'none';
+            
+            // Determine jerkiness text and status
+            const jerkinessText = ['No Jerk', 'Some Jerk', 'Too Much Jerk'][jerkiness] || 'Unknown';
+            
+            // Determine speed text and status
+            let speedText, speedStatus;
+            if (speed < 2.5) {
+                speedText = 'Too Fast';
+                speedStatus = 'bad';
+            } else if (speed > 4.0) {
+                speedText = 'Too Slow';
+                speedStatus = 'bad';
+            } else {
+                speedText = 'Perfect';
+                speedStatus = 'good';
+            }
+            
+            // Determine ROM status
+            const romStatus = (rom >= 85 && rom <= 105) ? 'good' : 
+                             (rom >= 70) ? 'caution' : 'bad';
+            
+            // Determine jerkiness status
+            const jerkinessStatus = jerkiness === 0 ? 'good' : 
+                                   jerkiness === 1 ? 'caution' : 'bad';
+            
+            // Determine overall badge
+            const overallBadge = (romStatus === 'good' && speedStatus === 'good' && jerkinessStatus === 'good') ? 'good' :
+                                 (romStatus === 'bad' || speedStatus === 'bad' || jerkinessStatus === 'bad') ? 'bad' : 'caution';
+
+            const repCard = document.createElement('div');
+            repCard.className = 'rep-card';
+            repCard.innerHTML = `
+                <div class="rep-header">
+                    <div class="rep-number">
+                        <span class="rep-icon">${repNum}</span>
+                        Rep ${repNum}
+                    </div>
+                    <span class="overall-badge badge-${overallBadge}">
+                        ${overallBadge === 'good' ? 'Good' : overallBadge === 'caution' ? 'Caution' : 'Poor'}
+                    </span>
+                </div>
+                <div class="metrics">
+                    <div class="metric-row">
+                        <span class="metric-label">ROM Angle</span>
+                        <span class="metric-value value-${romStatus}">${rom}°</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Speed</span>
+                        <span class="metric-value value-${speedStatus}">${speedText}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Jerkiness</span>
+                        <span class="metric-value value-${jerkinessStatus}">${jerkinessText}</span>
+                    </div>
+                </div>
+            `;
+
+            // Add to top of container with animation
+            repContainer.insertBefore(repCard, repContainer.firstChild);
+            
+            // Trigger animation
+            setTimeout(() => {
+                repCard.classList.add('show');
+            }, 50);
+
+            // Store rep data
+            repsData.push({ rom, speed, jerkiness, status: overallBadge });
+        }
+
+        function updateSummary() {
+            // Update total reps
+            document.getElementById('totalReps').textContent = repsData.length;
+            animateStatUpdate('totalRepsStat');
+            
+            // Update good reps count
+            const goodReps = repsData.filter(r => r.status === 'good').length;
+            document.getElementById('goodReps').textContent = goodReps;
+            animateStatUpdate('goodRepsStat');
+            
+            // Update average ROM angle
+            if (repsData.length > 0) {
+                const avgRom = Math.round(repsData.reduce((sum, r) => sum + r.rom, 0) / repsData.length);
+                document.getElementById('avgAngle').textContent = avgRom + '°';
+                animateStatUpdate('avgAngleStat');
+            }
+        }
+
+        function animateStatUpdate(statId) {
+            const stat = document.getElementById(statId);
+            stat.classList.add('updated');
+            setTimeout(() => {
+                stat.classList.remove('updated');
+            }, 300);
+        }
+
+        function updateDuration() {
+            if (!sessionStartTime) return;
+            const elapsed = Math.floor((Date.now() - sessionStartTime) / 60000);
+            document.getElementById('duration').textContent = elapsed + ' min' + (elapsed !== 1 ? 's' : '');
+            setTimeout(updateDuration, 10000); // Update every 10 seconds
+        }
+
+        function onDisconnected() {
+            console.log('Device disconnected');
+            resetConnectionState();
+            showError('Device disconnected. Please reconnect to continue.');
+        }
+
+        function resetConnectionState() {
+            statusDot.classList.remove('connected');
+            statusText.textContent = 'Not Connected';
+            connectBtn.disabled = false;
+            connectBtn.textContent = 'Connect to REHABAND';
+            connectBtn.style.background = '';
+            
+            // Reset session data
+            sessionStartTime = null;
+            lastRepCount = 0;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Demo Mode Functions
+        function startDemoMode() {
+            hideError();
+            
+            // Simulate connection
+            statusDot.classList.add('connected');
+            statusText.textContent = 'Connected (Demo)';
+            connectBtn.style.display = 'none';
+            demoBtn.textContent = 'Demo Running...';
+            demoBtn.disabled = true;
+            demoBtn.style.background = '#ccc';
+            
+            sessionStartTime = Date.now();
+            updateDuration();
+            
+            // Generate demo reps with delays
+            simulateReps();
+        }
+
+        function simulateReps() {
+            const demoReps = [
+                { rep: 1, rom: 95, speed: 3.2, jerkiness: 0 }, // Good rep
+                { rep: 2, rom: 78, speed: 2.1, jerkiness: 1 }, // Caution rep  
+                { rep: 3, rom: 102, speed: 3.8, jerkiness: 0 }, // Good rep
+                { rep: 4, rom: 65, speed: 4.5, jerkiness: 2 }, // Poor rep
+                { rep: 5, rom: 88, speed: 3.1, jerkiness: 1 }, // Caution rep
+            ];
+
+            let currentRep = 0;
+            
+            function addNextRep() {
+                if (currentRep < demoReps.length) {
+                    const rep = demoReps[currentRep];
+                    addRepCard(rep.rep, rep.rom, rep.speed, rep.jerkiness);
+                    updateSummary();
+                    currentRep++;
+                    
+                    // Schedule next rep (2-4 seconds apart)
+                    const delay = 2000 + Math.random() * 2000;
+                    setTimeout(addNextRep, delay);
+                } else {
+                    // Demo complete
+                    demoBtn.textContent = 'Demo Complete ✓';
+                    demoBtn.style.background = '#16a34a';
+                    
+                    // Show completion message
+                    setTimeout(() => {
+                        showError('Demo complete! This is how the interface looks with real Arduino data.');
+                        
+                        // Reset demo after 10 seconds
+                        setTimeout(() => {
+                            resetDemo();
+                        }, 10000);
+                    }, 1000);
+                }
+            }
+            
+            // Start first rep after 1 second
+            setTimeout(addNextRep, 1000);
+        }
+
+        function resetDemo() {
+            // Reset UI state
+            statusDot.classList.remove('connected');
+            statusText.textContent = 'Not Connected';
+            connectBtn.style.display = '';
+            demoBtn.textContent = 'Try Demo Mode';
+            demoBtn.disabled = false;
+            demoBtn.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
+            
+            // Clear rep data
+            repsData = [];
+            sessionStartTime = null;
+            
+            // Reset stats
+            document.getElementById('totalReps').textContent = '0';
+            document.getElementById('goodReps').textContent = '0';
+            document.getElementById('avgAngle').textContent = '--';
+            document.getElementById('duration').textContent = '0 mins';
+            
+            // Clear rep cards
+            repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">No reps yet. Start exercising to see data!</div>';
+            
+            hideError();
+        }
+
+        // Add some visual feedback for testing
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('REHABAND BLE App loaded');
+        });
+    </script>
+</body>
+</html>
