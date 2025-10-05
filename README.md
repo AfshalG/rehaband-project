@@ -17,8 +17,12 @@ REHABAND is a smart rehabilitation device that:
 
 - **Real-time Rep Tracking**: Automatically detects and counts exercise repetitions
 - **Performance Metrics**: ROM angle, speed analysis, and jerkiness detection
+- **Interactive Settings**: Adjust ROM and Speed targets with +/- controls
+- **Smart Sound Alerts**: Audio feedback for poor form (silent for good performance)
 - **Live Dashboard**: Session summary with stats and rep history
-- **Demo Mode**: Test the interface without hardware
+- **Enhanced Demo Mode**: Test interface with visual feedback and calibration notes
+- **Persistent Settings**: Your preferences save automatically using localStorage
+- **Mobile Optimized**: Responsive design with improved spacing and layout
 - **Cross-platform**: Works on any device with Chrome/Edge browser
 
 ## 🛠 Hardware Requirements
@@ -37,9 +41,10 @@ cd rehaband-project
 
 ### 1. Try Demo Mode First
 1. Open `rehaband-app-ble.html` in Chrome or Edge (from the cloned folder)
-2. Click **"Try Demo Mode"** (green button)  
-3. Watch as 5 simulated reps appear with real-time feedback
-4. This shows you exactly how the interface works!
+2. Click **"Try Demo Mode"** (green button turns red while running)  
+3. Watch as 5 simulated reps appear with real-time feedback and sound alerts
+4. Adjust settings with +/- controls to see how thresholds affect evaluation
+5. This shows you exactly how the interface works!
 
 ### 2. Set Up Arduino (for real data)
 1. Install required libraries in Arduino IDE:
@@ -74,6 +79,7 @@ rehaband-project/
 ### Demo Mode
 - **Purpose**: Test the interface without Arduino hardware
 - **Duration**: Shows 5 simulated reps over ~15 seconds
+- **Visual Feedback**: Button turns red while running, disclaimer appears
 - **Resets**: Automatically resets after completion
 - **Perfect for**: Understanding the interface before using real hardware
 
@@ -84,21 +90,39 @@ rehaband-project/
 - **Reps**: Up to 10 reps per session
 - **Auto-reset**: Session resets after 10 reps
 
+## 🔊 Sound Alerts
+
+### Audio Feedback System
+- **Good Form**: 🔇 **Silent** (no beep - good form shouldn't interrupt)
+- **Caution Form**: ⚠️ **Medium beep** (600Hz, 0.15s) - gentle warning
+- **Poor Form**: ❌ **Lower, longer beep** (300Hz, 0.4s) - needs attention
+
+### Sound Controls
+- **Toggle**: ON/OFF button in Adjust Settings
+- **Test Sound**: Plays when you turn sound alerts ON
+- **Persistent**: Setting saves automatically across sessions
+- **Works**: Both demo mode and real Arduino data
+
+## ⚙️ Interactive Settings
+
+### Adjustable Thresholds
+- **Target ROM**: Set your ideal range of motion (50° - 150° range)
+- **Speed Target**: Set your preferred rep timing (1.0s - 6.0s range)
+- **+/- Controls**: Click buttons to adjust values in real-time
+- **Auto-Save**: Settings persist across browser sessions
+- **Live Updates**: Changes affect evaluation immediately
+
+### Dynamic Color-Coding
+- **ROM Tolerance**: Target ±10° = Good, Target ±25° = Caution, beyond = Poor
+- **Speed Tolerance**: Target ±0.5s = Good, beyond = Poor
+- **Instant Feedback**: Both demo and real data use your custom thresholds
+
 ## 📊 Performance Metrics
 
-### ROM (Range of Motion)
-- **Good**: 85° - 105°
-- **Caution**: 70° - 84°  
-- **Poor**: Below 70°
-
-### Speed
-- **Good**: 2.5 - 4.0 seconds per rep
-- **Poor**: Too fast (<2.5s) or too slow (>4.0s)
-
-### Jerkiness
-- **Good**: Smooth movement (no jerk)
-- **Caution**: Some jerkiness detected
-- **Poor**: Very jerky movement
+### Default Thresholds (Customizable)
+- **ROM Target**: 95° (Good: 85°-105°, Caution: 70°-120°, Poor: beyond)
+- **Speed Target**: 3.2s (Good: 2.7s-3.7s, Poor: beyond)
+- **Jerkiness**: Based on sensor data (Good: smooth, Caution: some, Poor: jerky)
 
 ## 🔧 Troubleshooting
 
