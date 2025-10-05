@@ -278,11 +278,11 @@
         .instructions {
             background: #f0f9ff;
             color: #0369a1;
-            padding: 12px;
-            margin: 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            line-height: 1.4;
+            padding: 6px 10px;
+            margin: 6px 12px;
+            border-radius: 6px;
+            font-size: 10px;
+            line-height: 1.2;
         }
 
         .pulse {
@@ -293,6 +293,90 @@
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
+        }
+
+        .settings-section {
+            background: white;
+            padding: 14px 16px;
+            margin: 0 12px 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        .settings-section h3 {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .setting-item {
+            margin-bottom: 10px;
+        }
+
+        .setting-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 8px 12px;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            min-width: 60px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .control-value.updated {
+            transform: scale(1.1);
+            color: #16a34a;
+        }
+
+        .control-unit {
+            font-size: 11px;
+            color: #999;
+            margin-left: 2px;
         }
     </style>
 </head>
@@ -310,7 +394,7 @@
 
     <button class="connect-btn" id="connectBtn">Connect to REHABAND</button>
 
-    <button class="connect-btn" id="demoBtn" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); margin-top: 0;">Try Demo Mode</button>
+    <button class="connect-btn" id="demoBtn" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); margin-top: 8px;">Try Demo Mode</button>
 
     <div class="error-message" id="errorMessage"></div>
 
@@ -341,6 +425,38 @@
         </div>
     </div>
 
+    <div class="settings-section">
+        <h3>Adjust Settings</h3>
+        <div id="demoDisclaimer" style="font-size: 9px; color: #dc2626; margin-bottom: 8px; font-style: italic; display: none;">
+            Note: Demo is calibrated for perfect form at 95° ROM and 3.2s speed
+        </div>
+        
+        <div class="setting-item">
+            <label class="setting-label">Target ROM</label>
+            <div class="setting-control">
+                <button class="control-btn" id="romDecBtn">−</button>
+                <div class="control-value" id="romValue">95<span class="control-unit">°</span></div>
+                <button class="control-btn" id="romIncBtn">+</button>
+            </div>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">Speed Target</label>
+            <div class="setting-control">
+                <button class="control-btn" id="speedDecBtn">−</button>
+                <div class="control-value" id="speedValue">3.2<span class="control-unit">s</span></div>
+                <button class="control-btn" id="speedIncBtn">+</button>
+            </div>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">Sound Alerts</label>
+            <div class="setting-control">
+                <button class="control-btn" id="soundToggleBtn" style="width: auto; padding: 0 12px; border-radius: 6px;">ON</button>
+            </div>
+        </div>
+    </div>
+
     <div class="rep-list">
         <h3>Rep History</h3>
         <div id="repContainer">
@@ -357,6 +473,13 @@
         let sessionStartTime;
         let lastRepCount = 0;
 
+        // Settings variables
+        let settings = {
+            targetROM: 95,
+            speedTarget: 3.2,
+            soundAlerts: true
+        };
+
         const connectBtn = document.getElementById('connectBtn');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
@@ -366,8 +489,25 @@
 
         const demoBtn = document.getElementById('demoBtn');
 
+        // Settings elements
+        const romDecBtn = document.getElementById('romDecBtn');
+        const romIncBtn = document.getElementById('romIncBtn');
+        const romValue = document.getElementById('romValue');
+        const speedDecBtn = document.getElementById('speedDecBtn');
+        const speedIncBtn = document.getElementById('speedIncBtn');
+        const speedValue = document.getElementById('speedValue');
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const demoDisclaimer = document.getElementById('demoDisclaimer');
+
         connectBtn.addEventListener('click', connectToDevice);
         demoBtn.addEventListener('click', startDemoMode);
+
+        // Settings event listeners
+        romDecBtn.addEventListener('click', () => adjustSetting('rom', -5));
+        romIncBtn.addEventListener('click', () => adjustSetting('rom', 5));
+        speedDecBtn.addEventListener('click', () => adjustSetting('speed', -0.1));
+        speedIncBtn.addEventListener('click', () => adjustSetting('speed', 0.1));
+        soundToggleBtn.addEventListener('click', toggleSoundAlerts);
 
         // Check if Web Bluetooth is supported
         if (!navigator.bluetooth) {
@@ -463,12 +603,14 @@
             // Determine jerkiness text and status
             const jerkinessText = ['No Jerk', 'Some Jerk', 'Too Much Jerk'][jerkiness] || 'Unknown';
             
-            // Determine speed text and status
+            // Determine speed text and status using dynamic thresholds
+            const speedTarget = settings.speedTarget;
+            const speedTolerance = 0.5; // ±0.5 seconds
             let speedText, speedStatus;
-            if (speed < 2.5) {
+            if (speed < (speedTarget - speedTolerance)) {
                 speedText = 'Too Fast';
                 speedStatus = 'bad';
-            } else if (speed > 4.0) {
+            } else if (speed > (speedTarget + speedTolerance)) {
                 speedText = 'Too Slow';
                 speedStatus = 'bad';
             } else {
@@ -476,9 +618,11 @@
                 speedStatus = 'good';
             }
             
-            // Determine ROM status
-            const romStatus = (rom >= 85 && rom <= 105) ? 'good' : 
-                             (rom >= 70) ? 'caution' : 'bad';
+            // Determine ROM status using dynamic thresholds
+            const romTarget = settings.targetROM;
+            const romTolerance = 10; // ±10 degrees
+            const romStatus = (rom >= (romTarget - romTolerance) && rom <= (romTarget + romTolerance)) ? 'good' : 
+                             (rom >= (romTarget - 25) && rom <= (romTarget + 25)) ? 'caution' : 'bad';
             
             // Determine jerkiness status
             const jerkinessStatus = jerkiness === 0 ? 'good' : 
@@ -487,6 +631,9 @@
             // Determine overall badge
             const overallBadge = (romStatus === 'good' && speedStatus === 'good' && jerkinessStatus === 'good') ? 'good' :
                                  (romStatus === 'bad' || speedStatus === 'bad' || jerkinessStatus === 'bad') ? 'bad' : 'caution';
+
+            // Debug logging for demo mode
+            console.log(`Rep ${repNum}: ROM=${rom}° (${romStatus}), Speed=${speed}s (${speedStatus}), Jerkiness=${jerkiness} (${jerkinessStatus}) → Overall: ${overallBadge}`);
 
             const repCard = document.createElement('div');
             repCard.className = 'rep-card';
@@ -526,6 +673,11 @@
 
             // Store rep data
             repsData.push({ rom, speed, jerkiness, status: overallBadge });
+
+            // Play sound alert for poor form
+            if (settings.soundAlerts) {
+                playSoundAlert(overallBadge);
+            }
         }
 
         function updateSummary() {
@@ -598,7 +750,10 @@
             connectBtn.style.display = 'none';
             demoBtn.textContent = 'Demo Running...';
             demoBtn.disabled = true;
-            demoBtn.style.background = '#ccc';
+            demoBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            
+            // Show demo disclaimer
+            demoDisclaimer.style.display = 'block';
             
             sessionStartTime = Date.now();
             updateDuration();
@@ -609,11 +764,11 @@
 
         function simulateReps() {
             const demoReps = [
-                { rep: 1, rom: 95, speed: 3.2, jerkiness: 0 }, // Good rep
-                { rep: 2, rom: 78, speed: 2.1, jerkiness: 1 }, // Caution rep  
-                { rep: 3, rom: 102, speed: 3.8, jerkiness: 0 }, // Good rep
-                { rep: 4, rom: 65, speed: 4.5, jerkiness: 2 }, // Poor rep
-                { rep: 5, rom: 88, speed: 3.1, jerkiness: 1 }, // Caution rep
+                { rep: 1, rom: 95, speed: 3.2, jerkiness: 0 }, // Good rep (perfect match: 95° target, 3.2s target, no jerk)
+                { rep: 2, rom: 80, speed: 2.5, jerkiness: 1 }, // Caution rep (ROM 80° = caution, speed 2.5s = borderline, some jerk)
+                { rep: 3, rom: 90, speed: 3.0, jerkiness: 0 }, // Good rep (90° within 85-105°, 3.0s within 2.7-3.7s, no jerk) 
+                { rep: 4, rom: 70, speed: 4.0, jerkiness: 2 }, // Poor rep (ROM 70° = bad, speed 4.0s = bad, jerky)
+                { rep: 5, rom: 82, speed: 3.5, jerkiness: 1 }, // Caution rep (ROM 82° = caution, speed good, some jerk)
             ];
 
             let currentRep = 0;
@@ -658,6 +813,9 @@
             demoBtn.disabled = false;
             demoBtn.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
             
+            // Hide demo disclaimer
+            demoDisclaimer.style.display = 'none';
+            
             // Clear rep data
             repsData = [];
             sessionStartTime = null;
@@ -674,9 +832,113 @@
             hideError();
         }
 
+        // Settings Management Functions
+        function adjustSetting(type, change) {
+            if (type === 'rom') {
+                settings.targetROM = Math.max(50, Math.min(150, settings.targetROM + change));
+                updateSettingDisplay('rom', settings.targetROM);
+            } else if (type === 'speed') {
+                settings.speedTarget = Math.max(1.0, Math.min(6.0, parseFloat((settings.speedTarget + change).toFixed(1))));
+                updateSettingDisplay('speed', settings.speedTarget);
+            }
+            
+            // Save to localStorage
+            saveSettings();
+            
+            // Visual feedback
+            animateSettingChange(type);
+        }
+
+        function updateSettingDisplay(type, value) {
+            if (type === 'rom') {
+                romValue.innerHTML = `${value}<span class="control-unit">°</span>`;
+            } else if (type === 'speed') {
+                speedValue.innerHTML = `${value}<span class="control-unit">s</span>`;
+            }
+        }
+
+        function animateSettingChange(type) {
+            const element = type === 'rom' ? romValue : speedValue;
+            element.classList.add('updated');
+            setTimeout(() => {
+                element.classList.remove('updated');
+            }, 300);
+        }
+
+        function saveSettings() {
+            localStorage.setItem('rehabandSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('rehabandSettings');
+            if (saved) {
+                const savedSettings = JSON.parse(saved);
+                settings.targetROM = savedSettings.targetROM || 95;
+                settings.speedTarget = savedSettings.speedTarget || 3.2;
+                settings.soundAlerts = savedSettings.soundAlerts !== undefined ? savedSettings.soundAlerts : true;
+                
+                // Update display
+                updateSettingDisplay('rom', settings.targetROM);
+                updateSettingDisplay('speed', settings.speedTarget);
+                updateSoundToggleDisplay();
+            }
+        }
+
+        // Sound Alert Functions
+        function playSoundAlert(overallBadge) {
+            // Only beep for poor form - no sound for good form
+            if (overallBadge === 'caution') {
+                playTone(600, 0.15, 0.3); // Warning tone: medium pitch, short
+            } else if (overallBadge === 'bad') {
+                playTone(300, 0.4, 0.4); // Alert tone: lower pitch, longer
+            }
+            // No sound for 'good' - silent success
+        }
+
+        function playTone(frequency, duration, volume = 0.3) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (error) {
+                console.log('Audio not supported or blocked:', error);
+            }
+        }
+
+        function toggleSoundAlerts() {
+            settings.soundAlerts = !settings.soundAlerts;
+            updateSoundToggleDisplay();
+            saveSettings();
+            
+            // Play test sound when enabling
+            if (settings.soundAlerts) {
+                playTone(600, 0.15, 0.3);
+            }
+        }
+
+        function updateSoundToggleDisplay() {
+            soundToggleBtn.textContent = settings.soundAlerts ? 'ON' : 'OFF';
+            soundToggleBtn.style.background = settings.soundAlerts ? '#16a34a' : '#ef4444';
+            soundToggleBtn.style.color = 'white';
+        }
+
         // Add some visual feedback for testing
         document.addEventListener('DOMContentLoaded', () => {
             console.log('REHABAND BLE App loaded');
+            loadSettings(); // Load saved settings on page load
         });
     </script>
 </body>
