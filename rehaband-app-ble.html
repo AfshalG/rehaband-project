@@ -524,7 +524,7 @@
                 // Request device
                 device = await navigator.bluetooth.requestDevice({
                     filters: [{ name: 'REHABAND' }],
-                    optionalServices: ['180d']
+                    optionalServices: [0x180D]
                 });
 
                 // Connect to GATT server
@@ -533,14 +533,14 @@
                 
                 // Get service
                 statusText.textContent = 'Getting service...';
-                service = await server.getPrimaryService('180d');
+                service = await server.getPrimaryService(0x180D);
 
                 // Get characteristics
                 statusText.textContent = 'Getting characteristics...';
-                romChar = await service.getCharacteristic('2a37');
-                speedChar = await service.getCharacteristic('2a38');
-                jerkinessChar = await service.getCharacteristic('2a39');
-                repCountChar = await service.getCharacteristic('2a3a');
+                romChar = await service.getCharacteristic(0x2A37);
+                speedChar = await service.getCharacteristic(0x2A38);
+                jerkinessChar = await service.getCharacteristic(0x2A39);
+                repCountChar = await service.getCharacteristic(0x2A3A);
 
                 // Start notifications
                 statusText.textContent = 'Starting notifications...';

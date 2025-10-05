@@ -1,5 +1,5 @@
 #include <ArduinoBLE.h>
-#include <Arduino_LSM9DS1.h>
+#include <Arduino_BMI270_BMM150.h>
 
 // BLE Service and Characteristics
 BLEService rehabandService("180D"); // Heart Rate service UUID (repurposed)
@@ -28,18 +28,21 @@ const int MAX_REP_TIME = 8000;       // Maximum rep time in milliseconds
 
 void setup() {
   Serial.begin(9600);
-  
-  // Initialize IMU
+  while (!Serial); // Wait for Serial Monitor to open
+
+  Serial.println("Initializing IMU...");
   if (!IMU.begin()) {
     Serial.println("Failed to initialize IMU!");
     while (1);
   }
-  
-  // Initialize BLE
+  Serial.println("IMU initialized.");
+
+  Serial.println("Initializing BLE...");
   if (!BLE.begin()) {
     Serial.println("Starting BLE failed!");
     while (1);
   }
+  Serial.println("BLE initialized.");
   
   // Set BLE device name and advertised service
   BLE.setLocalName("REHABAND");
