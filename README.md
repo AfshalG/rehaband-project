@@ -154,18 +154,31 @@ Calibration creates **YOUR personalized targets** based on your 5 best repetitio
 - **Inaccurate feedback**: If ratings seem off (too easy or too hard)
 - **After long breaks**: If you haven't used the device in weeks/months
 
+### Calibration Process (Real-Time Progress with Dynamic Validation)
+1. **Set your standards** - Adjust Target ROM and Max Speed in settings first
+2. **Connect to Arduino** and click "Calibrate (5 Reps)" button
+3. **Watch live progress** - button updates: "Calibrating... (1/5)", "Calibrating... (2/5)", etc.
+4. **Perform 5 PERFECT squats** - only squats meeting YOUR settings count:
+   - **ROM requirement**: ≥80% of your Target ROM setting
+   - **Speed requirement**: ≤150% of your Max Speed setting
+   - **Rejected squats**: Clear feedback shows why (too shallow, too fast)
+5. **Automatic completion** - system calculates and applies your personal targets
+6. **Ready to exercise** - all future reps evaluated against YOUR standards
+
 ### Calibration Best Practices
 1. **Perfect form only**: Use your absolute BEST technique for all 5 reps
 2. **Consistent positioning**: Keep device in exact same position throughout calibration
 3. **Full range of motion**: Use your maximum comfortable ROM
 4. **Steady pace**: Use your ideal, controlled speed
 5. **Focus and concentration**: Don't rush - quality over speed
+6. **Wait for updates** - each squat completion shows progress on the app
 
 ### Understanding Results
 After calibration, check your new targets in the settings:
-- **ROM Target**: Your average maximum bend angle
-- **Speed Target**: Your average rep duration
+- **ROM Target**: Your average maximum bend angle (updated automatically)
+- **Speed Target**: Your average angular velocity (updated automatically)
 - **These become your new "Good" standards** for all future exercises
+- **Real-time sync** - Arduino and app communicate seamlessly during calibration
 
 ## 🔊 Sound Alerts
 
@@ -300,7 +313,17 @@ Created by **Nusurvivors** for smart rehabilitation monitoring.
 
 ---
 
-## 🔬 **Recent Major Improvements (v2.0)**
+## 🔬 **Recent Major Improvements (v2.1)**
+
+### **Enhanced BLE Communication & Smart Calibration**
+- **Real-time Calibration Progress** - App shows live updates "Calibrating... (1/5)" as you complete each squat
+- **Dynamic Calibration Validation** - Only accepts squats meeting YOUR Target ROM (≥80%) and Speed (≤150%) settings
+- **Intelligent Squat Rejection** - Clear feedback: "ROM too low: 65° < 72°, Speed too fast: 35°/s > 30°/s"
+- **Robust BLE Retry Logic** - Eliminates "GATT operation not permitted" errors with automatic retries
+- **Seamless Arduino-App Sync** - Perfect communication during calibration with progress tracking
+- **Improved Error Handling** - Clear error messages and graceful recovery from connection issues
+
+### **Previous Major Improvements (v2.0)**
 
 ### **Biomechanically Accurate Tracking**
 - **Realistic Knee Flexion**: 0° (standing) to 150° (deep squat) with proper biomechanical ranges

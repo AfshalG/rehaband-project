@@ -653,7 +653,26 @@
             try {
                 const calibrationStatus = event.target.value.getUint8(0);
                 
-                if (calibrationStatus === 2) {
+                if (calibrationStatus === 1) {
+                    // Calibration progress update - Arduino completed a calibration squat
+                    console.log('Calibration progress update received');
+                    
+                    // The repCountChar should now have the current calibration rep count
+                    if (repCountChar) {
+                        try {
+                            const repValue = await repCountChar.readValue();
+                            const currentCalibrationRep = repValue.getUint8(0);
+                            
+                            // Update button text with progress
+                            calibrateBtn.textContent = `Calibrating... (${currentCalibrationRep}/5)`;
+                            sessionControlsStatus.textContent = `Calibration progress: ${currentCalibrationRep}/5 squats completed`;
+                            
+                            console.log(`Calibration progress: ${currentCalibrationRep}/5 squats completed`);
+                        } catch (error) {
+                            console.error('Error reading calibration rep count:', error);
+                        }
+                    }
+                } else if (calibrationStatus === 2) {
                     // Calibration complete - read new target values
                     console.log('Calibration complete signal received');
                     
@@ -881,13 +900,14 @@
                 startResetBtn.textContent = 'Reset Session';
                 startResetBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
                 
-                // Send start command to Arduino
+                // Send start command to Arduino with retry logic
                 if (sessionControlChar) {
                     try {
-                        await sessionControlChar.writeValue(new Uint8Array([1])); // 1 = start session
+                        await writeCharacteristicWithRetry(sessionControlChar, new Uint8Array([1]));
                         console.log('Start session command sent to Arduino');
                     } catch (error) {
-                        console.error('Failed to send start command:', error);
+                        console.error('Failed to send start command after retries:', error);
+                        showError(`Failed to start session: ${error.message}`);
                     }
                 }
                 
@@ -911,13 +931,14 @@
                 startResetBtn.textContent = 'Start Session';
                 startResetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
                 
-                // Send reset command to Arduino
+                // Send reset command to Arduino with retry logic
                 if (sessionControlChar) {
                     try {
-                        await sessionControlChar.writeValue(new Uint8Array([0])); // 0 = reset session
+                        await writeCharacteristicWithRetry(sessionControlChar, new Uint8Array([0]));
                         console.log('Reset session command sent to Arduino');
                     } catch (error) {
-                        console.error('Failed to send reset command:', error);
+                        console.error('Failed to send reset command after retries:', error);
+                        showError(`Failed to reset session: ${error.message}`);
                     }
                 }
                 
@@ -941,6 +962,27 @@
             }
         }
 
+        // BLE Retry Helper Function
+        async function writeCharacteristicWithRetry(characteristic, value, maxRetries = 3, delay = 100) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    await characteristic.writeValue(value);
+                    console.log(`BLE write successful on attempt ${attempt}`);
+                    return true;
+                } catch (error) {
+                    console.warn(`BLE write attempt ${attempt} failed:`, error.message);
+                    
+                    if (attempt === maxRetries) {
+                        throw error; // Throw error after all retries failed
+                    }
+                    
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, delay * attempt));
+                }
+            }
+            return false;
+        }
+
         // Calibration Functions
         async function startCalibration() {
             if (!device || !device.gatt.connected) {
@@ -962,24 +1004,34 @@
             calibrateBtn.disabled = true;
             sessionControlsStatus.textContent = 'Calibrating... Perform 5 good form squats';
             
-            // Send calibration start command to Arduino
+            // Send calibration start command to Arduino with retry logic
             if (calibrationChar) {
                 try {
-                    await calibrationChar.writeValue(new Uint8Array([1])); // 1 = start calibration
+                    await writeCharacteristicWithRetry(calibrationChar, new Uint8Array([1]));
                     console.log('Calibration start command sent to Arduino');
                 } catch (error) {
-                    console.error('Failed to send calibration command:', error);
+                    console.error('Failed to send calibration command after retries:', error);
+                    showError(`Calibration error: ${error.message}`);
+                    
+                    // Reset calibration state on failure
+                    isCalibrating = false;
+                    calibrateBtn.textContent = 'Calibrate (5 Reps)';
+                    calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    calibrateBtn.disabled = false;
+                    sessionControlsStatus.textContent = 'Ready to start session or calibrate';
+                    return;
                 }
             }
             
-            // Send current target values to Arduino
+            // Send current target values to Arduino with retry logic
             if (targetROMChar && targetSpeedChar) {
                 try {
-                    await targetROMChar.writeValue(new Float32Array([settings.targetROM]));
-                    await targetSpeedChar.writeValue(new Float32Array([settings.speedTarget]));
+                    await writeCharacteristicWithRetry(targetROMChar, new Float32Array([settings.targetROM]));
+                    await writeCharacteristicWithRetry(targetSpeedChar, new Float32Array([settings.speedTarget]));
                     console.log('Target values sent to Arduino');
                 } catch (error) {
-                    console.error('Failed to send target values:', error);
+                    console.error('Failed to send target values after retries:', error);
+                    showError(`Failed to send targets: ${error.message}`);
                 }
             }
             

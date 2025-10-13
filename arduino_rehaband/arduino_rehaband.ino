@@ -364,9 +364,12 @@ void trackSquatMovement() {
       }
       
       // Detect when reaching bottom position (movement slows down)
+      // Use dynamic threshold during calibration
+      float minAngleForBottom = isCalibrating ? (targetROM * 0.6) : MIN_SQUAT_ANGLE;
+      
       if (currentSpeed < STABLE_THRESHOLD && 
           (currentTime - stateStartTime) > STABLE_TIME &&
-          peakSquatAngle > MIN_SQUAT_ANGLE) {
+          peakSquatAngle > minAngleForBottom) {
         
         squatState = 2; // BOTTOM_POSITION
         stateStartTime = currentTime;
@@ -409,14 +412,23 @@ void trackSquatMovement() {
           currentKneeAngle <= (straightAngle + 15) &&
           (currentTime - stateStartTime) > STABLE_TIME) {
         
-        // Check if minimum squat criteria met
-        if (peakSquatAngle >= MIN_SQUAT_ANGLE && 
+        // Check if squat meets criteria (dynamic thresholds during calibration)
+        float minAngleRequired = isCalibrating ? (targetROM * 0.8) : MIN_SQUAT_ANGLE;
+        
+        if (peakSquatAngle >= minAngleRequired && 
             (currentTime - repStartTime) >= MIN_SQUAT_TIME) {
           
           completeSquat(currentTime);
           squatState = 0; // Back to STRAIGHT
         } else {
-          Serial.println("Insufficient squat - not counting");
+          if (isCalibrating) {
+            Serial.print("Calibration squat rejected - ROM ");
+            Serial.print(peakSquatAngle);
+            Serial.print("° < required ");
+            Serial.println(minAngleRequired);
+          } else {
+            Serial.println("Insufficient squat - not counting");
+          }
           squatState = 0;
         }
       }
@@ -461,26 +473,66 @@ void completeSquat(unsigned long endTime) {
   // Use RMS jerk value calculated during movement
   float squatJerkiness = rmsJerk;
   
-  // Handle calibration mode
+  // Handle calibration mode with validation
   if (isCalibrating && calibrationRep < 5) {
-    calibrationAngles[calibrationRep] = romAngle;
-    calibrationSpeeds[calibrationRep] = avgSquatSpeed;
-    calibrationJerks[calibrationRep] = squatJerkiness;
-    calibrationRep++;
+    // Validate calibration squat against user's settings
+    bool validROM = romAngle >= (targetROM * 0.8); // At least 80% of target ROM
+    bool validSpeed = avgSquatSpeed <= (targetSpeed * 1.5); // Within 150% of target speed
     
-    Serial.print("Calibration squat ");
-    Serial.print(calibrationRep);
-    Serial.print("/5 - ROM: ");
-    Serial.print(romAngle);
-    Serial.print("°, Speed: ");
-    Serial.print(avgSquatSpeed);
-    Serial.print("°/s, RMS Jerk: ");
-    Serial.println(squatJerkiness);
+    if (validROM && validSpeed) {
+      // Accept this calibration squat
+      calibrationAngles[calibrationRep] = romAngle;
+      calibrationSpeeds[calibrationRep] = avgSquatSpeed;
+      calibrationJerks[calibrationRep] = squatJerkiness;
+      calibrationRep++;
+      
+      Serial.print("✓ Calibration squat ");
+      Serial.print(calibrationRep);
+      Serial.print("/5 ACCEPTED - ROM: ");
+      Serial.print(romAngle);
+      Serial.print("° (req: ");
+      Serial.print(targetROM * 0.8, 1);
+      Serial.print("°), Speed: ");
+      Serial.print(avgSquatSpeed);
+      Serial.print("°/s (max: ");
+      Serial.print(targetSpeed * 1.5, 1);
+      Serial.print("°/s), Jerk: ");
+      Serial.println(squatJerkiness);
+    } else {
+      // Reject this calibration squat
+      Serial.print("✗ Calibration squat REJECTED - ");
+      if (!validROM) {
+        Serial.print("ROM too low: ");
+        Serial.print(romAngle);
+        Serial.print("° < ");
+        Serial.print(targetROM * 0.8, 1);
+        Serial.print("°");
+      }
+      if (!validSpeed) {
+        if (!validROM) Serial.print(", ");
+        Serial.print("Speed too fast: ");
+        Serial.print(avgSquatSpeed);
+        Serial.print("°/s > ");
+        Serial.print(targetSpeed * 1.5, 1);
+        Serial.print("°/s");
+      }
+      Serial.println(" - Try again with better form!");
+      return; // Don't send BLE data for rejected squats
+    }
+    
+    // Send calibration progress to app via BLE
+    romChar.writeValue(romAngle);
+    speedChar.writeValue(avgSquatSpeed);
+    jerkinessChar.writeValue(squatJerkiness);
+    repCountChar.writeValue(calibrationRep); // Send current calibration count
+    
+    // Send calibration progress signal (1 = in progress, rep count in repCountChar)
+    calibrationChar.writeValue(1);
     
     if (calibrationRep >= 5) {
       processCalibrationData();
     }
-    return; // Don't send regular BLE data during calibration
+    return; // Exit after sending calibration data
   }
   
   // Send data via BLE (using new advanced metrics)
