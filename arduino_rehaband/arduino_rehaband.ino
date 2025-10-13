@@ -358,32 +358,34 @@ void trackSquatMovement() {
       break;
 
     case 1: // SQUATTING_DOWN
-      // Track deepest squat angle
-      if (currentKneeAngle > peakSquatAngle) {
-        peakSquatAngle = currentKneeAngle;
-      }
-      
-      // Detect when reaching bottom position (movement slows down)
-      // Use dynamic threshold during calibration
-      float minAngleForBottom = isCalibrating ? (targetROM * 0.6) : MIN_SQUAT_ANGLE;
-      
-      if (currentSpeed < STABLE_THRESHOLD && 
-          (currentTime - stateStartTime) > STABLE_TIME &&
-          peakSquatAngle > minAngleForBottom) {
+      {
+        // Track deepest squat angle
+        if (currentKneeAngle > peakSquatAngle) {
+          peakSquatAngle = currentKneeAngle;
+        }
         
-        squatState = 2; // BOTTOM_POSITION
-        stateStartTime = currentTime;
+        // Detect when reaching bottom position (movement slows down)
+        // Use dynamic threshold during calibration
+        float minAngleForBottom = isCalibrating ? (targetROM * 0.6) : MIN_SQUAT_ANGLE;
         
-        Serial.print("Bottom position reached - Peak angle: ");
-        Serial.print(peakSquatAngle);
-        Serial.print("°, ROM: ");
-        Serial.println(peakSquatAngle - straightAngle);
-      }
-      
-      // Timeout protection
-      if ((currentTime - repStartTime) > MAX_SQUAT_TIME) {
-        Serial.println("Squat timeout during down phase");
-        squatState = 0; // Reset to STRAIGHT
+        if (currentSpeed < STABLE_THRESHOLD && 
+            (currentTime - stateStartTime) > STABLE_TIME &&
+            peakSquatAngle > minAngleForBottom) {
+          
+          squatState = 2; // BOTTOM_POSITION
+          stateStartTime = currentTime;
+          
+          Serial.print("Bottom position reached - Peak angle: ");
+          Serial.print(peakSquatAngle);
+          Serial.print("°, ROM: ");
+          Serial.println(peakSquatAngle - straightAngle);
+        }
+        
+        // Timeout protection
+        if ((currentTime - repStartTime) > MAX_SQUAT_TIME) {
+          Serial.println("Squat timeout during down phase");
+          squatState = 0; // Reset to STRAIGHT
+        }
       }
       break;
 
@@ -407,36 +409,38 @@ void trackSquatMovement() {
       break;
 
     case 3: // RISING_UP
-      // Detect return to straight position
-      if (currentSpeed < STABLE_THRESHOLD && 
-          currentKneeAngle <= (straightAngle + 15) &&
-          (currentTime - stateStartTime) > STABLE_TIME) {
-        
-        // Check if squat meets criteria (dynamic thresholds during calibration)
-        float minAngleRequired = isCalibrating ? (targetROM * 0.8) : MIN_SQUAT_ANGLE;
-        
-        if (peakSquatAngle >= minAngleRequired && 
-            (currentTime - repStartTime) >= MIN_SQUAT_TIME) {
+      {
+        // Detect return to straight position
+        if (currentSpeed < STABLE_THRESHOLD && 
+            currentKneeAngle <= (straightAngle + 15) &&
+            (currentTime - stateStartTime) > STABLE_TIME) {
           
-          completeSquat(currentTime);
-          squatState = 0; // Back to STRAIGHT
-        } else {
-          if (isCalibrating) {
-            Serial.print("Calibration squat rejected - ROM ");
-            Serial.print(peakSquatAngle);
-            Serial.print("° < required ");
-            Serial.println(minAngleRequired);
+          // Check if squat meets criteria (dynamic thresholds during calibration)
+          float minAngleRequired = isCalibrating ? (targetROM * 0.8) : MIN_SQUAT_ANGLE;
+          
+          if (peakSquatAngle >= minAngleRequired && 
+              (currentTime - repStartTime) >= MIN_SQUAT_TIME) {
+            
+            completeSquat(currentTime);
+            squatState = 0; // Back to STRAIGHT
           } else {
-            Serial.println("Insufficient squat - not counting");
+            if (isCalibrating) {
+              Serial.print("Calibration squat rejected - ROM ");
+              Serial.print(peakSquatAngle);
+              Serial.print("° < required ");
+              Serial.println(minAngleRequired);
+            } else {
+              Serial.println("Insufficient squat - not counting");
+            }
+            squatState = 0;
           }
+        }
+        
+        // Timeout protection
+        if ((currentTime - repStartTime) > MAX_SQUAT_TIME) {
+          Serial.println("Squat timeout during rising phase");
           squatState = 0;
         }
-      }
-      
-      // Timeout protection
-      if ((currentTime - repStartTime) > MAX_SQUAT_TIME) {
-        Serial.println("Squat timeout during rising phase");
-        squatState = 0;
       }
       break;
   }
