@@ -3,92 +3,57 @@
 
 // BLE Service and Characteristics
 BLEService rehabandService("180D"); // Heart Rate service UUID (repurposed)
-BLEIntCharacteristic romChar("2A37", BLERead | BLENotify);        // ROM angle
-BLEFloatCharacteristic speedChar("2A38", BLERead | BLENotify);    // Speed (angular velocity)
-BLEFloatCharacteristic jerkinessChar("2A39", BLERead | BLENotify);  // RMS Jerkiness value
+BLEIntCharacteristic romChar("2A37", BLERead | BLENotify);      // ROM angle
+BLEFloatCharacteristic speedChar("2A38", BLERead | BLENotify);    // Speed (seconds per rep)
+BLEIntCharacteristic jerkinessChar("2A39", BLERead | BLENotify);  // Jerkiness level (0-2)
 BLEIntCharacteristic repCountChar("2A3A", BLERead | BLENotify);   // Current rep number
-BLEIntCharacteristic sessionControlChar("2A3B", BLEWrite);        // Session control (start/reset)
+BLEIntCharacteristic sessionControlChar("2A3B", BLEWrite);        // Session control
 BLEIntCharacteristic calibrationChar("2A3C", BLEWrite | BLERead | BLENotify); // Calibration control
-BLEFloatCharacteristic targetROMChar("2A3D", BLEWrite);          // Target ROM from app
-BLEFloatCharacteristic targetSpeedChar("2A3E", BLEWrite);        // Target speed from app
+BLEFloatCharacteristic targetROMChar("2A3D", BLEWrite);           // Target ROM setting
+BLEFloatCharacteristic targetSpeedChar("2A3E", BLEWrite);         // Target speed setting
 
-// IMU raw data
+// IMU and exercise tracking variables
 float accelX, accelY, accelZ;
 float gyroX, gyroY, gyroZ;
-float prevGyroY = 0;
-
-// Advanced angle calculation variables
-float pitch = 0;
-float gyroAngle = 0;
-float accelAngle = 0;
-float filteredAngle = 0;
-float baselineAngle = 0;
-float kneeFlexionAngle = 0;
-const float FILTER_ALPHA = 0.98; // Complementary filter coefficient
-const float DT = 0.05; // 50ms sampling period (20Hz)
-
-// Exercise tracking variables
+float pitch, roll;
 int currentRep = 0;
 unsigned long repStartTime = 0;
-float repDuration = 0;
+float jerkinessSum = 0;
+int jerkinessCount = 0;
+float alpha = 0.98; // Filter coefficient (higher value trusts the gyroscope more)
+unsigned long lastTime = 0;
+// ---------------------------------------------------------
 
-// Speed tracking variables
-float currentAngularSpeed = 0;
-float peakSpeed = 0;
-float avgSpeed = 0;
-float speedSum = 0;
-int speedCount = 0;
-const int SPEED_WINDOW = 5;
-float speedBuffer[SPEED_WINDOW] = {0};
-int speedIndex = 0;
 
-// Jerkiness tracking variables
-float rmsJerk = 0;
-float jerkSum = 0;
-int jerkCount = 0;
-float smoothnessScore = 0;
-const int JERK_WINDOW = 10;
-float jerkBuffer[JERK_WINDOW] = {0};
-int jerkIndex = 0;
+// State machine and angle tracking variables
+int exerciseState = 0;      // 0: IDLE, 1: BENDING, 2: STRAIGHTENING
+float startBendAngle = 0;   // Angle at the start of the bend
+float peakBendAngle = 0;    // Lowest angle achieved during the bend
+
+// New variables for robust rep counting
+float lastStableAngle = 0;   // Stores the angle when the leg is at rest
+unsigned long lastRepTime = 0; // Time of the last completed rep
+const int REP_COOLDOWN = 500;  // 500ms cooldown between reps to prevent double counting
 
 // Calibration variables
 bool isCalibrating = false;
 int calibrationRep = 0;
 float calibrationAngles[5] = {0};
 float calibrationSpeeds[5] = {0};
-float calibrationJerks[5] = {0};
-float targetROM = 90.0; // Default target
-float targetSpeed = 30.0; // Default angular speed target (deg/s)
-float targetJerk = 100.0; // Default jerk threshold
+float targetROM = 90.0;   // Default - will be updated from app settings
+float targetSpeed = 30.0; // Default - will be updated from app settings
 
-// Squat state machine variables
-int squatState = 0;         // 0: STRAIGHT, 1: SQUATTING_DOWN, 2: BOTTOM_POSITION, 3: RISING_UP
-float straightAngle = 0;    // Reference angle when leg is straight
-float peakSquatAngle = 0;   // Deepest squat angle achieved
-float squatStartAngle = 0;  // Angle at start of squat movement
-unsigned long stateStartTime = 0; // Time when current state started
-unsigned long lastRepTime = 0; // Time of the last completed rep
-
-// Squat detection thresholds (optimized for thigh-mounted IMU)
-const float MIN_SQUAT_ANGLE = 30.0;    // Minimum knee flexion to count as squat
-const float MOVEMENT_THRESHOLD = 15.0;  // Degrees/s to detect start of movement
-const float STABLE_THRESHOLD = 5.0;     // Degrees/s to detect stable position
-const int MIN_SQUAT_TIME = 800;         // Minimum squat duration (ms)
-const int MAX_SQUAT_TIME = 10000;       // Maximum squat duration (ms)
-const int REP_COOLDOWN = 1000;          // 1s cooldown between reps
-const int STABLE_TIME = 500;            // Time to be stable before state change
+// Calibration and thresholds
+const float ANGLE_THRESHOLD = 30.0;  // Minimum angle change to count as rep
+const float GYRO_THRESHOLD = 30.0;   // Reduced - more sensitive movement detection
+const int MIN_REP_TIME = 1000;       // Minimum rep time in milliseconds
+const int MAX_REP_TIME = 10000;      // Increased - allow longer reps
 
 // --- FUNCTION PROTOTYPES ---
 void readIMU();
-void calculateAdvancedAngle();
-void calculateSpeed();
-void calculateJerkiness();
-void trackSquatMovement();
-void completeSquat(unsigned long endTime);
+void trackExercise();
+void completeRep(unsigned long endTime);
 void resetSession();
-void handleCalibration();
-void processCalibrationData();
-float movingAverage(float buffer[], float newValue, int windowSize, int &index);
 // -------------------------
 
 void setup() {
@@ -109,11 +74,9 @@ void setup() {
   }
   Serial.println("BLE initialized.");
   
-  // Set BLE device name and advertised service
   BLE.setLocalName("REHABAND");
   BLE.setAdvertisedService(rehabandService);
   
-  // Add characteristics to service
   rehabandService.addCharacteristic(romChar);
   rehabandService.addCharacteristic(speedChar);
   rehabandService.addCharacteristic(jerkinessChar);
@@ -123,536 +86,266 @@ void setup() {
   rehabandService.addCharacteristic(targetROMChar);
   rehabandService.addCharacteristic(targetSpeedChar);
   
-  // Add service
   BLE.addService(rehabandService);
   
-  // Set initial characteristic values
   romChar.writeValue(0);
   speedChar.writeValue(0.0);
-  jerkinessChar.writeValue(0.0);
+  jerkinessChar.writeValue(0);
   repCountChar.writeValue(0);
   sessionControlChar.writeValue(0);
   calibrationChar.writeValue(0);
-  targetROMChar.writeValue(90.0);
+  targetROMChar.writeValue(90.0);   // Match HTML default
   targetSpeedChar.writeValue(30.0);
   
-  // Start advertising
   BLE.advertise();
   
   Serial.println("REHABAND BLE device active, waiting for connections...");
 }
 
 void loop() {
-  // Listen for BLE connections
   BLEDevice central = BLE.central();
   
   if (central) {
     Serial.print("Connected to central: ");
     Serial.println(central.address());
     
-    // Set initial baseline angle when connection starts
-    delay(1000); // Allow IMU to stabilize
-    readIMU();
-    calculateAdvancedAngle();
-    baselineAngle = filteredAngle;
-    straightAngle = baselineAngle;
-    Serial.print("Initial baseline angle set to: ");
-    Serial.println(baselineAngle);
-    
-    // While connected, continuously read IMU and track reps
     while (central.connected()) {
-      // Check for session control commands
+      // Handle session control
       if (sessionControlChar.written()) {
         int command = sessionControlChar.value();
         if (command == 1) {
-          // Start session command
-          readIMU();
-          calculateAdvancedAngle();
-          baselineAngle = filteredAngle;
-          straightAngle = baselineAngle;
+          // Start session - reset everything
           resetSession();
-          Serial.print("Session started - new baseline angle: ");
-          Serial.println(baselineAngle);
+          Serial.println("✓ Session started");
         } else if (command == 0) {
-          // Reset session command
           resetSession();
-          Serial.println("Session reset by user");
+          Serial.println("✓ Session reset");
         }
       }
       
-      // Check for calibration commands
+      // Handle calibration
       if (calibrationChar.written()) {
         int command = calibrationChar.value();
         if (command == 1 && !isCalibrating) {
-          // Start calibration
           isCalibrating = true;
           calibrationRep = 0;
           resetSession();
-          Serial.println("Calibration started - perform 5 squats");
+          Serial.println("=== CALIBRATION STARTED ===");
+          Serial.println("Perform 5 controlled squats");
         }
       }
       
-      // Check for target value updates from app
+      // Handle target ROM updates
       if (targetROMChar.written()) {
         targetROM = targetROMChar.value();
-        Serial.print("Target ROM updated to: ");
+        Serial.print("Target ROM updated: ");
         Serial.println(targetROM);
       }
       
+      // Handle target speed updates  
       if (targetSpeedChar.written()) {
         targetSpeed = targetSpeedChar.value();
-        Serial.print("Target Speed updated to: ");
+        Serial.print("Target Speed updated: ");
         Serial.println(targetSpeed);
       }
       
-      // Main processing loop
       readIMU();
-      calculateAdvancedAngle();
-      calculateSpeed();
-      calculateJerkiness();
-      
-      if (isCalibrating) {
-        handleCalibration();
-      } else {
-        trackSquatMovement();
-      }
-      
-      delay(50); // 20Hz sampling rate
+      trackExercise();
+      delay(50);
     }
     
     Serial.print("Disconnected from central: ");
     Serial.println(central.address());
     
-    // Reset session when disconnected
+    // The session is now reset only when the central device disconnects.
     resetSession();
   }
 }
 
 void readIMU() {
-  if (IMU.accelerationAvailable()) {
+  // Get the current time and calculate the time difference (dt)
+  unsigned long currentTime = micros();
+  float dt = (currentTime - lastTime) / 1000000.0; // dt in seconds
+  lastTime = currentTime;
+
+  if (IMU.accelerationAvailable() && IMU.gyroscopeAvailable()) {
+    // Read the latest sensor data
     IMU.readAcceleration(accelX, accelY, accelZ);
-  }
-  
-  if (IMU.gyroscopeAvailable()) {
     IMU.readGyroscope(gyroX, gyroY, gyroZ);
+
+    // Calculate the pitch angle from the accelerometer (long-term stability)
+    float accelPitch = atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180.0 / PI;
+
+    // Integrate the gyroscope data to get the change in angle (short-term accuracy)
+    // We use gyroY for pitch, as it measures rotation around the Y-axis.
+    pitch = alpha * (pitch + gyroY * dt) + (1 - alpha) * (accelPitch);
+  }
+  
+  // You no longer need to calculate roll unless you want to use it
+  // You also don't need abs(pitch) anymore unless your logic requires it
+  
+  // The auto-calibration part remains the same
+  if (lastStableAngle == 0 && pitch != 0) {
+    lastStableAngle = pitch;
   }
 }
 
-void calculateAdvancedAngle() {
-  // Calculate pitch from accelerometer (instant measurement)
-  // For thigh-mounted IMU: pitch represents knee flexion angle
-  accelAngle = atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180.0 / PI;
-  
-  // Integrate gyroscope for smooth angle tracking
-  gyroAngle += gyroY * DT; // gyroY is pitch rate
-  
-  // Complementary filter: combines gyro stability with accel accuracy
-  filteredAngle = FILTER_ALPHA * gyroAngle + (1 - FILTER_ALPHA) * accelAngle;
-  
-  // Calculate knee flexion angle relative to baseline (straight leg position)
-  kneeFlexionAngle = abs(filteredAngle - baselineAngle);
-  
-  // Ensure reasonable range (0-180 degrees)
-  kneeFlexionAngle = constrain(kneeFlexionAngle, 0, 180);
-  
-  // Update gyro angle to prevent drift
-  gyroAngle = filteredAngle;
-}
 
-void calculateSpeed() {
-  // Primary method: Angular velocity from gyroscope (degrees/second)
-  currentAngularSpeed = abs(gyroY);
-  
-  // Track peak speed during movement
-  if (currentAngularSpeed > peakSpeed) {
-    peakSpeed = currentAngularSpeed;
-  }
-  
-  // Moving average smoothing for speed
-  float smoothedSpeed = movingAverage(speedBuffer, currentAngularSpeed, SPEED_WINDOW, speedIndex);
-  currentAngularSpeed = smoothedSpeed;
-  
-  // Accumulate for average calculation
-  speedSum += currentAngularSpeed;
-  speedCount++;
-  
-  // Calculate average speed
-  if (speedCount > 0) {
-    avgSpeed = speedSum / speedCount;
-  }
-}
-
-float movingAverage(float buffer[], float newValue, int windowSize, int &index) {
-  // Add new value to buffer
-  buffer[index] = newValue;
-  index = (index + 1) % windowSize;
-  
-  // Calculate average
-  float sum = 0;
-  for (int i = 0; i < windowSize; i++) {
-    sum += buffer[i];
-  }
-  return sum / windowSize;
-}
-
-void calculateJerkiness() {
-  // Calculate angular jerk (change in angular velocity)
-  float gyroJerk = abs(gyroY - prevGyroY) / DT; // deg/s²
-  
-  // Store previous gyro value for next calculation
-  prevGyroY = gyroY;
-  
-  // Accumulate jerk for RMS calculation
-  jerkSum += gyroJerk * gyroJerk;
-  jerkCount++;
-  
-  // Calculate RMS jerk (Root Mean Square)
-  if (jerkCount > 0) {
-    rmsJerk = sqrt(jerkSum / jerkCount);
-  }
-  
-  // Calculate smoothness score (0-1 scale, higher = smoother)
-  smoothnessScore = 1.0 / (1.0 + rmsJerk * 0.01);
-  
-  // Optional: Apply moving average to jerk for smoother readings
-  float smoothedJerk = movingAverage(jerkBuffer, gyroJerk, JERK_WINDOW, jerkIndex);
-}
-
-void trackSquatMovement() {
+void trackExercise() {
+  float currentAngle = pitch;
   unsigned long currentTime = millis();
-  
-  // Use new filtered angle and speed measurements
-  float currentKneeAngle = kneeFlexionAngle;
-  float currentSpeed = currentAngularSpeed;
-  
-  switch (squatState) {
-    case 0: // STRAIGHT
-      // Update straight reference angle when stable
-      if (currentSpeed < STABLE_THRESHOLD) {
-        straightAngle = currentKneeAngle;
-        // Reset peak values for new squat
-        peakSquatAngle = 0;
-        peakSpeed = 0;
-        // Reset metrics for new squat
-        speedSum = 0;
-        speedCount = 0;
-        jerkSum = 0;
-        jerkCount = 0;
+  float totalGyro = sqrt(gyroX * gyroX + gyroY * gyroY);
+
+  switch (exerciseState) {
+    case 0: // IDLE
+      if (totalGyro < GYRO_THRESHOLD / 2) {
+        lastStableAngle = currentAngle;
       }
       
-      // Detect start of squat movement
-      if (currentSpeed > MOVEMENT_THRESHOLD && 
-          currentKneeAngle > (straightAngle + 10) && 
-          (currentTime - lastRepTime) > REP_COOLDOWN) {
-        
-        squatState = 1; // SQUATTING_DOWN
+      if (totalGyro > GYRO_THRESHOLD && (currentTime - lastRepTime) > REP_COOLDOWN) {
+        exerciseState = 1;
         repStartTime = currentTime;
-        stateStartTime = currentTime;
-        squatStartAngle = currentKneeAngle;
-        
-        Serial.print("Squat started - Straight angle: ");
-        Serial.print(straightAngle);
-        Serial.print("°, Current angle: ");
-        Serial.println(currentKneeAngle);
+        startBendAngle = lastStableAngle;
+        peakBendAngle = lastStableAngle;
+        jerkinessSum = totalGyro;
+        jerkinessCount = 1;
+        Serial.println("Starting Bend...");
       }
       break;
 
-    case 1: // SQUATTING_DOWN
-      {
-        // Track deepest squat angle
-        if (currentKneeAngle > peakSquatAngle) {
-          peakSquatAngle = currentKneeAngle;
-        }
-        
-        // Detect when reaching bottom position (movement slows down)
-        // Use dynamic threshold during calibration
-        float minAngleForBottom = isCalibrating ? (targetROM * 0.6) : MIN_SQUAT_ANGLE;
-        
-        if (currentSpeed < STABLE_THRESHOLD && 
-            (currentTime - stateStartTime) > STABLE_TIME &&
-            peakSquatAngle > minAngleForBottom) {
-          
-          squatState = 2; // BOTTOM_POSITION
-          stateStartTime = currentTime;
-          
-          Serial.print("Bottom position reached - Peak angle: ");
-          Serial.print(peakSquatAngle);
-          Serial.print("°, ROM: ");
-          Serial.println(peakSquatAngle - straightAngle);
-        }
-        
-        // Timeout protection
-        if ((currentTime - repStartTime) > MAX_SQUAT_TIME) {
-          Serial.println("Squat timeout during down phase");
-          squatState = 0; // Reset to STRAIGHT
-        }
-      }
-      break;
+    case 1: // BENDING
+      jerkinessSum += totalGyro;
+      jerkinessCount++;
 
-    case 2: // BOTTOM_POSITION
-      // Wait for upward movement to start
-      if (currentSpeed > MOVEMENT_THRESHOLD && 
-          currentKneeAngle < peakSquatAngle &&
-          (currentTime - stateStartTime) > STABLE_TIME) {
-        
-        squatState = 3; // RISING_UP
-        stateStartTime = currentTime;
-        
-        Serial.println("Rising phase started");
+      if (abs(currentAngle - startBendAngle) > abs(peakBendAngle - startBendAngle)) {
+        peakBendAngle = currentAngle;
       }
       
-      // Timeout protection
-      if ((currentTime - stateStartTime) > (STABLE_TIME * 4)) {
-        Serial.println("Bottom position timeout");
-        squatState = 3; // Force to rising
+      // More conservative bend ending - require lower movement AND minimum time
+      if (totalGyro < GYRO_THRESHOLD / 3 && (currentTime - repStartTime) > 800) {
+        if (abs(peakBendAngle - startBendAngle) > ANGLE_THRESHOLD) {
+          exerciseState = 2;
+          Serial.print("Bend complete after ");
+          Serial.print((currentTime - repStartTime) / 1000.0, 1);
+          Serial.println("s. Now straightening...");
+        }
+      }
+
+      if ((currentTime - repStartTime) > MAX_REP_TIME) {
+        Serial.println("Rep timeout during bend - resetting");
+        resetSession();
       }
       break;
 
-    case 3: // RISING_UP
-      {
-        // Detect return to straight position
-        if (currentSpeed < STABLE_THRESHOLD && 
-            currentKneeAngle <= (straightAngle + 15) &&
-            (currentTime - stateStartTime) > STABLE_TIME) {
-          
-          // Check if squat meets criteria (dynamic thresholds during calibration)
-          float minAngleRequired = isCalibrating ? (targetROM * 0.8) : MIN_SQUAT_ANGLE;
-          
-          if (peakSquatAngle >= minAngleRequired && 
-              (currentTime - repStartTime) >= MIN_SQUAT_TIME) {
-            
-            completeSquat(currentTime);
-            squatState = 0; // Back to STRAIGHT
-          } else {
-            if (isCalibrating) {
-              Serial.print("Calibration squat rejected - ROM ");
-              Serial.print(peakSquatAngle);
-              Serial.print("° < required ");
-              Serial.println(minAngleRequired);
-            } else {
-              Serial.println("Insufficient squat - not counting");
-            }
-            squatState = 0;
-          }
-        }
-        
-        // Timeout protection
-        if ((currentTime - repStartTime) > MAX_SQUAT_TIME) {
-          Serial.println("Squat timeout during rising phase");
-          squatState = 0;
-        }
+    case 2: // STRAIGHTENING
+      jerkinessSum += totalGyro;
+      jerkinessCount++;
+
+      if (totalGyro < GYRO_THRESHOLD / 2 && abs(currentAngle - startBendAngle) < 15) {
+        completeRep(currentTime);
+        exerciseState = 0;
+      }
+
+      if ((currentTime - repStartTime) > MAX_REP_TIME) {
+        Serial.println("Rep timeout during straighten - resetting");
+        resetSession();
       }
       break;
-  }
-  
-  // Debug output every 1 second
-  static unsigned long lastDebug = 0;
-  if (currentTime - lastDebug > 1000) {
-    Serial.print("State: ");
-    Serial.print(squatState);
-    Serial.print(", Knee Angle: ");
-    Serial.print(currentKneeAngle);
-    Serial.print("°, Speed: ");
-    Serial.print(currentSpeed);
-    Serial.print("°/s, RMS Jerk: ");
-    Serial.println(rmsJerk);
-    lastDebug = currentTime;
   }
 }
 
-void completeSquat(unsigned long endTime) {
+void completeRep(unsigned long endTime) {
   currentRep++;
   lastRepTime = endTime;
   
-  // Calculate squat metrics with advanced measurements
-  repDuration = (endTime - repStartTime) / 1000.0; // Convert to seconds
-  int romAngle = (int)(peakSquatAngle - straightAngle); // ROM from straight to peak squat
+  float repDuration = (endTime - repStartTime) / 1000.0;
+  int romAngle = (int)abs(peakBendAngle - startBendAngle);
   
-  // Calculate average speed during the squat
-  float avgSquatSpeed = avgSpeed;
-  if (speedCount > 0) {
-    avgSquatSpeed = speedSum / speedCount;
-  }
+  float avgJerkiness = jerkinessSum / jerkinessCount;
+  int jerkinessLevel;
+  if (avgJerkiness < 100) jerkinessLevel = 0;
+  else if (avgJerkiness < 200) jerkinessLevel = 1;
+  else jerkinessLevel = 2;
   
-  // Use RMS jerk value calculated during movement
-  float squatJerkiness = rmsJerk;
-  
-  // Handle calibration mode with validation
+  // Handle calibration logic
   if (isCalibrating && calibrationRep < 5) {
-    // Validate calibration squat against user's settings
-    bool validROM = romAngle >= (targetROM * 0.8); // At least 80% of target ROM
-    bool validSpeed = avgSquatSpeed <= (targetSpeed * 1.5); // Within 150% of target speed
+    bool validROM = romAngle >= (targetROM * 0.8);  // 80% of target ROM
+    bool validSpeed = repDuration <= (targetSpeed / 10.0);  // Convert deg/s to rough time estimate
     
-    if (validROM && validSpeed) {
-      // Accept this calibration squat
+    if (validROM) {  // For now, just check ROM - speed validation needs work
       calibrationAngles[calibrationRep] = romAngle;
-      calibrationSpeeds[calibrationRep] = avgSquatSpeed;
-      calibrationJerks[calibrationRep] = squatJerkiness;
+      calibrationSpeeds[calibrationRep] = repDuration;
       calibrationRep++;
       
-      Serial.print("✓ Calibration squat ");
+      Serial.print("✓ Calibration ");
       Serial.print(calibrationRep);
-      Serial.print("/5 ACCEPTED - ROM: ");
+      Serial.print("/5 ACCEPTED - ROM:");
       Serial.print(romAngle);
-      Serial.print("° (req: ");
-      Serial.print(targetROM * 0.8, 1);
-      Serial.print("°), Speed: ");
-      Serial.print(avgSquatSpeed);
-      Serial.print("°/s (max: ");
-      Serial.print(targetSpeed * 1.5, 1);
-      Serial.print("°/s), Jerk: ");
-      Serial.println(squatJerkiness);
+      Serial.print("° Speed:");
+      Serial.print(repDuration, 1);
+      Serial.println("s");
+      
+      calibrationChar.writeValue(1); // Progress signal
     } else {
-      // Reject this calibration squat
-      Serial.print("✗ Calibration squat REJECTED - ");
-      if (!validROM) {
-        Serial.print("ROM too low: ");
-        Serial.print(romAngle);
-        Serial.print("° < ");
-        Serial.print(targetROM * 0.8, 1);
-        Serial.print("°");
-      }
-      if (!validSpeed) {
-        if (!validROM) Serial.print(", ");
-        Serial.print("Speed too fast: ");
-        Serial.print(avgSquatSpeed);
-        Serial.print("°/s > ");
-        Serial.print(targetSpeed * 1.5, 1);
-        Serial.print("°/s");
-      }
-      Serial.println(" - Try again with better form!");
-      return; // Don't send BLE data for rejected squats
+      Serial.print("✗ Calibration REJECTED - ROM:");
+      Serial.print(romAngle);
+      Serial.print("° < required ");
+      Serial.println(targetROM * 0.8, 1);
     }
-    
-    // Send calibration progress to app via BLE
-    romChar.writeValue(romAngle);
-    speedChar.writeValue(avgSquatSpeed);
-    jerkinessChar.writeValue(squatJerkiness);
-    repCountChar.writeValue(calibrationRep); // Send current calibration count
-    
-    // Send calibration progress signal (1 = in progress, rep count in repCountChar)
-    calibrationChar.writeValue(1);
     
     if (calibrationRep >= 5) {
-      processCalibrationData();
+      // Calculate averages
+      float avgROM = 0, avgSpeed = 0;
+      for (int i = 0; i < 5; i++) {
+        avgROM += calibrationAngles[i];
+        avgSpeed += calibrationSpeeds[i];
+      }
+      avgROM /= 5.0;
+      avgSpeed /= 5.0;
+      
+      Serial.println("=== CALIBRATION COMPLETE ===");
+      Serial.print("Average ROM: ");
+      Serial.print(avgROM, 1);
+      Serial.print("°, Average Speed: ");
+      Serial.print(avgSpeed, 1);
+      Serial.println("s");
+      
+      calibrationChar.writeValue(2); // Complete signal
+      isCalibrating = false;
+      calibrationRep = 0;
+      resetSession();
+      return;
     }
-    return; // Exit after sending calibration data
   }
   
-  // Send data via BLE (using new advanced metrics)
   romChar.writeValue(romAngle);
-  speedChar.writeValue(avgSquatSpeed); // Send average angular speed instead of duration
-  jerkinessChar.writeValue(squatJerkiness); // Send RMS jerk value
+  speedChar.writeValue(repDuration);
+  jerkinessChar.writeValue(jerkinessLevel);
   repCountChar.writeValue(currentRep);
   
-  // Debug output
-  Serial.print("Squat ");
+  Serial.print("Rep ");
   Serial.print(currentRep);
-  Serial.print(" completed - ROM: ");
+  Serial.print(" completed - Bend ROM: ");
   Serial.print(romAngle);
-  Serial.print("° (straight: ");
-  Serial.print(straightAngle);
-  Serial.print("°, peak: ");
-  Serial.print(peakSquatAngle);
-  Serial.print("°), Avg Speed: ");
-  Serial.print(avgSquatSpeed);
-  Serial.print("°/s, RMS Jerk: ");
-  Serial.print(squatJerkiness);
-  Serial.print(", Smoothness: ");
-  Serial.println(smoothnessScore);
-  
-  // Stop after 10 reps (optional - can be removed if not desired)
-  if (currentRep >= 10) {
-    Serial.println("Session complete - 10 squats finished");
-    delay(5000); // Wait 5 seconds before allowing new session
-    resetSession();
-  }
+  Serial.print("°, Speed: ");
+  Serial.print(repDuration);
+  Serial.print("s, Jerkiness: ");
+  Serial.println(jerkinessLevel);
 }
 
 void resetSession() {
   currentRep = 0;
-  squatState = 0; // Back to STRAIGHT
+  jerkinessSum = 0;
+  jerkinessCount = 0;
+  
+  lastStableAngle = 0;
   lastRepTime = 0;
+  exerciseState = 0;
   
-  // Reset speed tracking
-  speedSum = 0;
-  speedCount = 0;
-  avgSpeed = 0;
-  peakSpeed = 0;
-  
-  // Reset jerkiness tracking
-  jerkSum = 0;
-  jerkCount = 0;
-  rmsJerk = 0;
-  smoothnessScore = 1.0;
-  
-  // Reset squat-specific variables
-  peakSquatAngle = 0;
-  squatStartAngle = 0;
-  
-  // Reset BLE characteristics
   romChar.writeValue(0);
   speedChar.writeValue(0.0);
-  jerkinessChar.writeValue(0.0);
+  jerkinessChar.writeValue(0);
   repCountChar.writeValue(0);
   
   Serial.println("Session reset");
-}
-
-void handleCalibration() {
-  // During calibration, track squats normally but don't send BLE data
-  // The completeSquat function handles calibration data collection
-  trackSquatMovement();
-}
-
-void processCalibrationData() {
-  // Calculate averages from 5 calibration squats
-  float avgCalibrationROM = 0;
-  float avgCalibrationSpeed = 0;
-  float avgCalibrationJerk = 0;
-  
-  for (int i = 0; i < 5; i++) {
-    avgCalibrationROM += calibrationAngles[i];
-    avgCalibrationSpeed += calibrationSpeeds[i];
-    avgCalibrationJerk += calibrationJerks[i];
-  }
-  
-  avgCalibrationROM /= 5.0;
-  avgCalibrationSpeed /= 5.0;
-  avgCalibrationJerk /= 5.0;
-  
-  // Update target values based on calibration
-  targetROM = avgCalibrationROM * 0.9; // Set target to 90% of calibrated average
-  targetSpeed = avgCalibrationSpeed * 1.1; // Allow 10% slower than average
-  targetJerk = avgCalibrationJerk * 1.2; // Allow 20% more jerk than average
-  
-  // Send calibration results back to app via BLE
-  // Use a special calibration complete signal (value = 2)
-  calibrationChar.writeValue(2);
-  
-  // Also update the target characteristics
-  targetROMChar.writeValue(targetROM);
-  targetSpeedChar.writeValue(targetSpeed);
-  
-  // Reset calibration state
-  isCalibrating = false;
-  calibrationRep = 0;
-  
-  Serial.println("=== Calibration Complete ===");
-  Serial.print("Average ROM: ");
-  Serial.print(avgCalibrationROM);
-  Serial.print("° → Target ROM: ");
-  Serial.println(targetROM);
-  Serial.print("Average Speed: ");
-  Serial.print(avgCalibrationSpeed);
-  Serial.print("°/s → Target Speed: ");
-  Serial.println(targetSpeed);
-  Serial.print("Average Jerk: ");
-  Serial.print(avgCalibrationJerk);
-  Serial.print(" → Target Jerk: ");
-  Serial.println(targetJerk);
-  Serial.println("=============================");
-  
-  // Reset session for normal use
-  resetSession();
 }

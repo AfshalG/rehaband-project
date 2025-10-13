@@ -563,21 +563,21 @@
                 jerkinessChar = await service.getCharacteristic(0x2A39);
                 repCountChar = await service.getCharacteristic(0x2A3A);
                 
-                // Try to get session control characteristic (may not exist in older Arduino versions)
+                // Try to get session control characteristic
                 try {
                     sessionControlChar = await service.getCharacteristic(0x2A3B);
                 } catch (error) {
                     console.log('Session control characteristic not available:', error.message);
                 }
                 
-                // Try to get new calibration and target characteristics
+                // Try to get calibration and target characteristics
                 try {
                     calibrationChar = await service.getCharacteristic(0x2A3C);
                     targetROMChar = await service.getCharacteristic(0x2A3D);
                     targetSpeedChar = await service.getCharacteristic(0x2A3E);
-                    console.log('New calibration characteristics available');
+                    console.log('Calibration characteristics available');
                 } catch (error) {
-                    console.log('New characteristics not available - using legacy mode:', error.message);
+                    console.log('Calibration characteristics not available:', error.message);
                 }
 
                 // Start notifications
@@ -596,6 +596,9 @@
                 statusText.textContent = 'Connected';
                 connectBtn.textContent = 'Connected ✓';
                 connectBtn.style.background = '#16a34a';
+                
+                // Send current settings to Arduino immediately upon connection
+                await sendSettingsToArduino();
                 
                 // Enable session controls
                 startResetBtn.disabled = false;
@@ -1023,17 +1026,8 @@
                 }
             }
             
-            // Send current target values to Arduino with retry logic
-            if (targetROMChar && targetSpeedChar) {
-                try {
-                    await writeCharacteristicWithRetry(targetROMChar, new Float32Array([settings.targetROM]));
-                    await writeCharacteristicWithRetry(targetSpeedChar, new Float32Array([settings.speedTarget]));
-                    console.log('Target values sent to Arduino');
-                } catch (error) {
-                    console.error('Failed to send target values after retries:', error);
-                    showError(`Failed to send targets: ${error.message}`);
-                }
-            }
+            // Send current target values to Arduino
+            await sendSettingsToArduino();
             
             // Clear previous data
             repsData = [];
@@ -1187,6 +1181,19 @@
         }
 
         // Settings Management Functions
+        // Function to send current settings to Arduino
+        async function sendSettingsToArduino() {
+            if (targetROMChar && targetSpeedChar && isConnected) {
+                try {
+                    await writeCharacteristicWithRetry(targetROMChar, new Float32Array([settings.targetROM]));
+                    await writeCharacteristicWithRetry(targetSpeedChar, new Float32Array([settings.speedTarget]));
+                    console.log(`Settings sent to Arduino: ROM=${settings.targetROM}°, Speed=${settings.speedTarget}°/s`);
+                } catch (error) {
+                    console.error('Failed to send settings to Arduino:', error);
+                }
+            }
+        }
+
         function adjustSetting(type, change) {
             if (type === 'rom') {
                 settings.targetROM = Math.max(30, Math.min(150, settings.targetROM + change));
@@ -1198,6 +1205,9 @@
             
             // Save to localStorage
             saveSettings();
+            
+            // Send updated settings to Arduino immediately if connected
+            sendSettingsToArduino();
             
             // Visual feedback
             animateSettingChange(type);

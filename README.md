@@ -283,16 +283,16 @@ After calibration, check your new targets in the settings:
 - **Target ROM Characteristic**: `2A3D` (target ROM from app to Arduino)
 - **Target Speed Characteristic**: `2A3E` (target speed from app to Arduino)
 
-### Advanced Arduino IMU Processing
+### Arduino IMU Processing (Simplified & Reliable)
 - **Sensor**: BMI270_BMM150 or LSM9DS1 (accelerometer + gyroscope)
-- **Sampling Rate**: 20Hz (50ms intervals)
-- **Advanced Filtering**: Complementary filter combining accelerometer + gyroscope for drift-free pitch
-- **4-State Machine**: STRAIGHT → SQUATTING_DOWN → BOTTOM_POSITION → RISING_UP
-- **Biomechanical Angle Calculation**: True knee flexion from 0° (standing) baseline
-- **RMS Jerkiness Analysis**: Root Mean Square calculation for movement smoothness
-- **Angular Velocity Tracking**: Real-time speed measurement with moving average smoothing
-- **Robust Squat Detection**: 30° minimum knee flexion with timeout protection
-- **Two-Way Calibration**: Receives targets from app, calculates personalized thresholds
+- **Sampling Rate**: 20Hz (50ms intervals)  
+- **Proven Filtering**: Simple complementary filter (α=0.98) with natural drift correction
+- **3-State Machine**: IDLE → BENDING → STRAIGHTENING with robust movement detection
+- **Auto-Calibrating Baseline**: Automatically finds neutral angle when stationary
+- **Movement Detection**: Total gyroscope magnitude for superior motion sensing
+- **Jerkiness Analysis**: Average gyroscope magnitude for movement smoothness
+- **Dynamic Calibration**: Uses your Target ROM/Speed settings (not hardcoded values)
+- **Optimized Thresholds**: Tuned for realistic human movement patterns
 - **Thigh-Mounted Optimization**: Designed for 3cm above kneecap placement
 
 ## 🤝 Contributing
@@ -313,15 +313,21 @@ Created by **Nusurvivors** for smart rehabilitation monitoring.
 
 ---
 
-## 🔬 **Recent Major Improvements (v2.1)**
+## 🔬 **Recent Major Improvements (v2.2)**
+
+### **Simplified & Reliable Arduino Core**
+- **Back to Proven Foundation** - Reverted to simple, reliable 3-state movement detection (IDLE → BENDING → STRAIGHTENING)
+- **Robust Movement Detection** - Uses total gyroscope magnitude `sqrt(gyroX² + gyroY²)` for superior movement sensing
+- **Auto-Calibrating Baseline** - No complex setup needed - automatically finds neutral angle when stationary
+- **Optimized Timing Thresholds** - Tuned for realistic human movement (30°/s threshold, 8-second max rep time)
+- **Natural Complementary Filtering** - Simple α=0.98 filter proven effective for squat tracking
 
 ### **Enhanced BLE Communication & Smart Calibration**
-- **Real-time Calibration Progress** - App shows live updates "Calibrating... (1/5)" as you complete each squat
-- **Dynamic Calibration Validation** - Only accepts squats meeting YOUR Target ROM (≥80%) and Speed (≤150%) settings
-- **Intelligent Squat Rejection** - Clear feedback: "ROM too low: 65° < 72°, Speed too fast: 35°/s > 30°/s"
-- **Robust BLE Retry Logic** - Eliminates "GATT operation not permitted" errors with automatic retries
-- **Seamless Arduino-App Sync** - Perfect communication during calibration with progress tracking
-- **Improved Error Handling** - Clear error messages and graceful recovery from connection issues
+- **Dynamic Settings Integration** - Calibration uses YOUR Target ROM/Speed from "Adjust Settings" (not hardcoded)
+- **Real-time Settings Sync** - Arduino receives updated settings immediately when you change sliders
+- **Intelligent Calibration Logic** - Validates squats against your personal ROM target (≥80% threshold)
+- **Full BLE Characteristics** - Complete Arduino-App communication with all calibration features
+- **Seamless Connection Flow** - Settings sent automatically upon connection, updates sent on changes
 
 ### **Previous Major Improvements (v2.0)**
 
