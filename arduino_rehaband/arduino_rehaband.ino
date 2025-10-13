@@ -29,6 +29,7 @@ unsigned long lastTime = 0;
 int exerciseState = 0;      // 0: IDLE, 1: BENDING, 2: STRAIGHTENING
 float startBendAngle = 0;   // Angle at the start of the bend
 float peakBendAngle = 0;    // Lowest angle achieved during the bend
+unsigned long bendEndTime = 0;  // NEW: Track when bending phase ends
 
 // New variables for robust rep counting
 float lastStableAngle = 0;   // Stores the angle when the leg is at rest
@@ -225,8 +226,9 @@ void trackExercise() {
       if (totalGyro < GYRO_THRESHOLD / 3 && (currentTime - repStartTime) > 800) {
         if (abs(peakBendAngle - startBendAngle) > ANGLE_THRESHOLD) {
           exerciseState = 2;
+          bendEndTime = currentTime;  // NEW: Record when bending ends
           Serial.print("Bend complete after ");
-          Serial.print((currentTime - repStartTime) / 1000.0, 1);
+          Serial.print((bendEndTime - repStartTime) / 1000.0, 1);
           Serial.println("s. Now straightening...");
         }
       }
@@ -258,7 +260,7 @@ void completeRep(unsigned long endTime) {
   currentRep++;
   lastRepTime = endTime;
   
-  float repDuration = (endTime - repStartTime) / 1000.0;
+  float bendDuration = (bendEndTime - repStartTime) / 1000.0;  // Only bending phase time
   int romAngle = (int)abs(peakBendAngle - startBendAngle);
   
   float avgJerkiness = jerkinessSum / jerkinessCount;
@@ -270,11 +272,11 @@ void completeRep(unsigned long endTime) {
   // Handle calibration logic
   if (isCalibrating && calibrationRep < 5) {
     bool validROM = romAngle >= (targetROM * 0.8);  // 80% of target ROM
-    bool validSpeed = repDuration <= (targetSpeed / 10.0);  // Convert deg/s to rough time estimate
+    bool validSpeed = bendDuration <= (targetSpeed / 10.0);  // Convert deg/s to rough time estimate
     
     if (validROM) {  // For now, just check ROM - speed validation needs work
       calibrationAngles[calibrationRep] = romAngle;
-      calibrationSpeeds[calibrationRep] = repDuration;
+      calibrationSpeeds[calibrationRep] = bendDuration;
       calibrationRep++;
       
       Serial.print("✓ Calibration ");
@@ -282,7 +284,7 @@ void completeRep(unsigned long endTime) {
       Serial.print("/5 ACCEPTED - ROM:");
       Serial.print(romAngle);
       Serial.print("° Speed:");
-      Serial.print(repDuration, 1);
+      Serial.print(bendDuration, 1);
       Serial.println("s");
       
       calibrationChar.writeValue(1); // Progress signal
@@ -319,7 +321,7 @@ void completeRep(unsigned long endTime) {
   }
   
   romChar.writeValue(romAngle);
-  speedChar.writeValue(repDuration);
+  speedChar.writeValue(bendDuration);
   jerkinessChar.writeValue(jerkinessLevel);
   repCountChar.writeValue(currentRep);
   
@@ -328,7 +330,7 @@ void completeRep(unsigned long endTime) {
   Serial.print(" completed - Bend ROM: ");
   Serial.print(romAngle);
   Serial.print("°, Speed: ");
-  Serial.print(repDuration);
+  Serial.print(bendDuration);
   Serial.print("s, Jerkiness: ");
   Serial.println(jerkinessLevel);
 }

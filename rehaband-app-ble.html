@@ -403,7 +403,7 @@
             <button class="connect-btn" id="startResetBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Start Session</button>
             <button class="connect-btn" id="calibrateBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Calibrate (5 Reps)</button>
         </div>
-        <div style="font-size: 10px; color: #666; text-align: center; margin-top: 8px; font-style: italic;">Connect to device to enable session controls</div>
+        <div style="font-size: 10px; color: #666; text-align: center; margin-top: 8px; font-style: italic;" id="sessionControlsStatus">Connect to device to enable session controls</div>
     </div>
 
     <div class="error-message" id="errorMessage"></div>
@@ -437,6 +437,7 @@
 
     <div class="settings-section">
         <h3>Adjust Settings</h3>
+        <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 12px; font-style: italic;">Changes apply instantly to connected device</div>
         <div id="demoDisclaimer" style="font-size: 9px; color: #dc2626; margin-bottom: 8px; font-style: italic; display: none;">
             <strong>Demo Mode:</strong> For best results, set Target ROM to <strong>90°</strong> and Max Speed to <strong>30°/s</strong><br>
             This will show Rep 1 and Rep 3 as "Good" examples.
@@ -607,7 +608,7 @@
                 calibrateBtn.disabled = false;
                 calibrateBtn.style.opacity = '1';
                 calibrateBtn.style.cursor = 'pointer';
-                sessionControlsStatus.textContent = 'Ready to start session or calibrate';
+                sessionControlsStatus.textContent = '✨ First time? Click "Calibrate" to personalize your targets!';
                 
                 sessionStartTime = Date.now();
                 updateDuration();
