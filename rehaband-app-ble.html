@@ -496,14 +496,7 @@
 
                 <div class="error-message" id="errorMessage"></div>
 
-                <div class="instructions">
-                    <strong>Instructions:</strong><br>
-                    <strong>Real Device:</strong> 1) Upload Arduino sketch to Nano 33 BLE, 2) Mount device 3cm above kneecap on thigh, 3) Click "Connect to REHABAND", 4) Click "Calibrate (5 Reps)" and perform 5 perfect squats, 5) Use "Start Session" to begin tracking<br>
-                    <strong>Demo:</strong> Click "Try Demo Mode" to see the interface with simulated squat data (set ROM=90°, Speed=30°/s for best demo results)
-                </div>
-            </div>
-
-            <div class="right-column">
+                <!-- Session Summary moved to left -->
                 <div class="summary">
         <div class="summary-header">
             <h2>Session Summary</h2>
@@ -525,6 +518,7 @@
         </div>
     </div>
 
+    <!-- Settings moved to left -->
     <div class="settings-section">
         <h3>Adjust Settings</h3>
         <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 12px; font-style: italic;">Changes apply instantly to connected device</div>
@@ -559,8 +553,18 @@
         </div>
 
     </div>
+            </div>
 
-    <div class="rep-list">
+            <div class="right-column">
+                <!-- Instructions moved to right -->
+                <div class="instructions">
+                    <strong>Instructions:</strong><br>
+                    <strong>Real Device:</strong> 1) Upload Arduino sketch to Nano 33 BLE, 2) Mount device 3cm above kneecap on thigh, 3) Click "Connect to REHABAND", 4) Click "Calibrate (5 Reps)" and perform 5 perfect squats, 5) Use "Start Session" to begin tracking<br>
+                    <strong>Demo:</strong> Click "Try Demo Mode" to see the interface with simulated squat data (set ROM=90°, Speed=30°/s for best demo results)
+                </div>
+
+                <!-- Rep History moved to right -->
+                <div class="rep-list">
         <h3>Rep History</h3>
         <div id="repContainer">
             <div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">
