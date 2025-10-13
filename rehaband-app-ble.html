@@ -4,576 +4,230 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>REHABAND App - BLE</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe', 
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            margin: 0 auto;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* Mobile-first responsive design */
-        @media (max-width: 768px) {
-            .container {
-                max-width: 100%;
-                padding: 0;
-            }
-            
-            .main-content {
-                display: block;
-                padding: 0;
-            }
-            
-            .left-column, .right-column {
-                width: 100%;
-            }
-        }
-
-        @media (min-width: 769px) {
-            body {
-                padding: 20px 0;
-                background: #f0f2f5;
-            }
-            
-            .container {
-                background: white;
-                border-radius: 20px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-                overflow: hidden;
-                min-height: 80vh;
-            }
-            
-            .header {
-                border-radius: 0;
-                padding: 20px 30px;
-            }
-            
-            .header h1 {
-                font-size: 24px;
-            }
-            
-            .main-content {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 30px;
-                padding: 20px 30px 30px;
-                min-height: calc(80vh - 80px);
-            }
-            
-            .left-column {
-                order: 1;
-            }
-            
-            .right-column {
-                order: 2;
-            }
-            
-            .connect-btn {
-                margin: 0 0 12px 0;
-                padding: 14px;
-                font-size: 15px;
-            }
-            
-            .session-controls {
-                margin: 0 0 20px 0 !important;
-            }
-            
-            .summary, .settings-section {
-                margin: 0 0 20px 0 !important;
-            }
-            
-            .instructions {
-                margin: 0 0 20px 0 !important;
-            }
-            
-            .error-message {
-                margin: 0 0 20px 0 !important;
-            }
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 16px 20px;
-        }
-        
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        
-        .header h1 {
-            font-size: 20px;
-        }
-        
-        .session-type {
-            font-size: 10px;
-            background: rgba(255,255,255,0.25);
-            padding: 4px 8px;
-            border-radius: 10px;
-        }
-        
-        .status {
-            font-size: 11px;
-            opacity: 0.9;
-        }
-        
-        .status-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: #ef4444;
-            border-radius: 50%;
-            margin-right: 4px;
-            transition: background-color 0.3s ease;
-        }
-
-        .status-dot.connected {
-            background: #4ade80;
-        }
-
-        .connect-btn {
-            width: calc(100% - 24px);
-            margin: 12px;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .connect-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .connect-btn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        
-        .summary {
-            background: white;
-            padding: 14px 16px;
-            margin: 12px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        }
-        
-        .summary-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .summary h2 {
-            font-size: 14px;
-            color: #333;
-        }
-        
-        .duration {
-            font-size: 11px;
-            color: #667eea;
-            background: #e0e7ff;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-        
-        .stat {
-            text-align: center;
-            padding: 8px;
-            background: #f8f9ff;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .stat.updated {
-            background: #e0e7ff;
-            transform: scale(1.05);
-        }
-        
-        .stat-value {
-            font-size: 20px;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .stat-label {
-            font-size: 10px;
-            color: #666;
-            margin-top: 2px;
-        }
-        
-        .rep-list {
-            padding: 0 12px 16px;
-        }
-        
-        .rep-list h3 {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        
-        .rep-card {
-            background: white;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-            transition: all 0.3s ease;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        .rep-card.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .rep-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .rep-number {
-            font-size: 15px;
-            font-weight: bold;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .rep-icon {
-            width: 26px;
-            height: 26px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .overall-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .badge-good {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-        
-        .badge-caution {
-            background: #fef9c3;
-            color: #ca8a04;
-        }
-        
-        .badge-bad {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-        
-        .metrics {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            background: #fafafa;
-            border-radius: 6px;
-        }
-        
-        .metric-label {
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .metric-value {
-            font-size: 12px;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 5px;
-        }
-        
-        .value-good {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-        
-        .value-caution {
-            background: #fef9c3;
-            color: #ca8a04;
-        }
-        
-        .value-bad {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .error-message {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 12px;
-            margin: 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            display: none;
-        }
-
-        .instructions {
-            background: #f0f9ff;
-            color: #0369a1;
-            padding: 6px 10px;
-            margin: 6px 12px;
-            border-radius: 6px;
-            font-size: 10px;
-            line-height: 1.2;
-        }
-
         .pulse {
             animation: pulse 2s infinite;
         }
-
+        
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
-
-        .settings-section {
-            background: white;
-            padding: 14px 16px;
-            margin: 0 12px 12px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        
+        .bg-primary-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-
-        .settings-section h3 {
-            font-size: 13px;
-            color: #333;
-            margin-bottom: 12px;
-            font-weight: 600;
+        
+        .bg-success-gradient {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
         }
-
-        .setting-item {
-            margin-bottom: 10px;
+        
+        .bg-warning-gradient {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
         }
-
-        .setting-label {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .setting-control {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #f8f9ff;
-            border-radius: 8px;
-            padding: 8px 12px;
-        }
-
-        .control-buttons {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .control-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .control-btn:hover {
-            background: #667eea;
-            color: white;
-            transform: scale(1.05);
-        }
-
-        .control-btn:active {
-            transform: scale(0.95);
-        }
-
-        .control-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #667eea;
-            min-width: 60px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .control-value.updated {
-            transform: scale(1.1);
-            color: #16a34a;
-        }
-
-        .control-unit {
-            font-size: 11px;
-            color: #999;
-            margin-left: 2px;
+        
+        .bg-danger-gradient {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="header-top">
-                <h1>REHABAND</h1>
-                <span class="session-type">Live Session</span>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto p-4 lg:p-8">
+        <!-- Header -->
+        <header class="bg-primary-gradient text-white rounded-xl shadow-lg mb-6 overflow-hidden">
+            <div class="px-6 py-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h1 class="text-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="activity" class="w-6 h-6"></i>
+                        REHABAND
+                    </h1>
+                    <span class="bg-white/20 text-xs px-3 py-1 rounded-full">Live Session</span>
+                </div>
+                <div class="flex items-center text-sm opacity-90">
+                    <div class="w-2 h-2 bg-red-400 rounded-full mr-2 transition-colors duration-300" id="statusDot"></div>
+                    <span id="statusText">Not Connected</span>
+                </div>
             </div>
-            <div class="status">
-                <span class="status-dot" id="statusDot"></span>
-                <span id="statusText">Not Connected</span>
-            </div>
-        </div>
+        </header>
 
-        <div class="main-content">
-            <div class="left-column">
-                <button class="connect-btn" id="connectBtn">Connect to REHABAND</button>
-
-                <button class="connect-btn" id="demoBtn" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); margin-top: 8px;">Try Demo Mode</button>
-
-                <!-- Session Controls Section -->
-                <div class="session-controls" style="margin: 12px; background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
-                    <h3 style="font-size: 14px; color: #333; margin-bottom: 12px; font-weight: 600; text-align: center;">Session Controls</h3>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="connect-btn" id="startResetBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Start Session</button>
-                        <button class="connect-btn" id="calibrateBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>Calibrate (5 Reps)</button>
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left Column - Controls & Data -->
+            <div class="space-y-6">
+                <!-- Connection Buttons -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="bluetooth" class="w-5 h-5"></i>
+                        Device Connection
+                    </h2>
+                    <div class="space-y-3">
+                        <button id="connectBtn" class="w-full bg-primary-gradient text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="bluetooth" class="w-4 h-4"></i>
+                            Connect to REHABAND
+                        </button>
+                        <button id="demoBtn" class="w-full bg-success-gradient text-white py-3 px-4 rounded-lg font-medium hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="play-circle" class="w-4 h-4"></i>
+                            Try Demo Mode
+                        </button>
                     </div>
-                    <div style="font-size: 10px; color: #666; text-align: center; margin-top: 8px; font-style: italic;" id="sessionControlsStatus">Connect to device to enable session controls</div>
                 </div>
 
-                <div class="error-message" id="errorMessage"></div>
-
-                <!-- Session Summary moved to left -->
-                <div class="summary">
-        <div class="summary-header">
-            <h2>Session Summary</h2>
-            <span class="duration" id="duration">0 mins</span>
-        </div>
-        <div class="stats">
-            <div class="stat" id="totalRepsStat">
-                <div class="stat-value" id="totalReps">0</div>
-                <div class="stat-label">Total Reps</div>
-            </div>
-            <div class="stat" id="goodRepsStat">
-                <div class="stat-value" id="goodReps">0</div>
-                <div class="stat-label">Good Form</div>
-            </div>
-            <div class="stat" id="avgAngleStat">
-                <div class="stat-value" id="avgAngle">--</div>
-                <div class="stat-label">Avg Angle</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings moved to left -->
-    <div class="settings-section">
-        <h3>Adjust Settings</h3>
-        <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 12px; font-style: italic;">Changes apply instantly to connected device</div>
-        <div id="demoDisclaimer" style="font-size: 9px; color: #dc2626; margin-bottom: 8px; font-style: italic; display: none;">
-            <strong>Demo Mode:</strong> For best results, set Target ROM to <strong>90°</strong> and Max Speed to <strong>30°/s</strong><br>
-            This will show Rep 1 and Rep 3 as "Good" examples.
-        </div>
-        
-        <div class="setting-item">
-            <label class="setting-label">Target ROM</label>
-            <div class="setting-control">
-                <button class="control-btn" id="romDecBtn">−</button>
-                <div class="control-value" id="romValue">95<span class="control-unit">°</span></div>
-                <button class="control-btn" id="romIncBtn">+</button>
-            </div>
-        </div>
-
-        <div class="setting-item">
-            <label class="setting-label">Max Speed for "Controlled" Rating</label>
-            <div class="setting-control">
-                <button class="control-btn" id="speedDecBtn">−</button>
-                <div class="control-value" id="speedValue">30<span class="control-unit">°/s</span></div>
-                <button class="control-btn" id="speedIncBtn">+</button>
-            </div>
-        </div>
-
-        <div class="setting-item">
-            <label class="setting-label">Sound Alerts</label>
-            <div class="setting-control">
-                <button class="control-btn" id="soundToggleBtn" style="width: auto; padding: 0 12px; border-radius: 6px;">ON</button>
-            </div>
-        </div>
-
-    </div>
-            </div>
-
-            <div class="right-column">
-                <!-- Instructions moved to right -->
-                <div class="instructions">
-                    <strong>Instructions:</strong><br>
-                    <strong>Real Device:</strong> 1) Upload Arduino sketch to Nano 33 BLE, 2) Mount device 3cm above kneecap on thigh, 3) Click "Connect to REHABAND", 4) Click "Calibrate (5 Reps)" and perform 5 perfect squats, 5) Use "Start Session" to begin tracking<br>
-                    <strong>Demo:</strong> Click "Try Demo Mode" to see the interface with simulated squat data (set ROM=90°, Speed=30°/s for best demo results)
+                <!-- Session Controls -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                        Session Controls
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <button id="startResetBtn" disabled class="bg-warning-gradient text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Start Session
+                        </button>
+                        <button id="calibrateBtn" disabled class="bg-primary-gradient text-white py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <i data-lucide="target" class="w-4 h-4"></i>
+                            Calibrate
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 text-center italic" id="sessionControlsStatus">✨ First time? Click "Calibrate" to personalize your targets!</p>
                 </div>
 
-                <!-- Rep History moved to right -->
-                <div class="rep-list">
-        <h3>Rep History</h3>
-        <div id="repContainer">
-            <div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">
-                No reps yet. Start exercising to see data!
+                <!-- Session Summary -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                            Session Summary
+                        </h2>
+                        <span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-600" id="duration">0 mins</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-lg border border-gray-100" id="totalRepsStat">
+                            <div class="text-2xl font-bold text-gray-900" id="totalReps">0</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Total Reps</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg border border-gray-100" id="goodRepsStat">
+                            <div class="text-2xl font-bold text-gray-900" id="goodReps">0</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Good Form</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg border border-gray-100" id="avgAngleStat">
+                            <div class="text-2xl font-bold text-gray-900" id="avgAngle">--</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Avg Angle</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-5 h-5"></i>
+                        Adjust Settings
+                    </h2>
+                    <p class="text-xs text-gray-500 text-center mb-4 italic">Changes apply instantly to connected device</p>
+                    <div id="demoDisclaimer" class="hidden text-xs text-red-600 bg-red-50 p-3 rounded-lg mb-4">
+                        <strong>Demo Mode:</strong> For best results, set Target ROM to <strong>90°</strong> and Max Speed to <strong>30°/s</strong><br>
+                        This will show Rep 1 and Rep 3 as "Good" examples.
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-medium text-gray-700">Target ROM</label>
+                            <div class="flex items-center gap-2">
+                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 transition-colors" id="romDecBtn">−</button>
+                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900" id="romValue">95<span class="text-xs text-gray-500 ml-1">°</span></div>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 transition-colors" id="romIncBtn">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-medium text-gray-700">Max Speed for "Controlled" Rating</label>
+                            <div class="flex items-center gap-2">
+                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 transition-colors" id="speedDecBtn">−</button>
+                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900" id="speedValue">30<span class="text-xs text-gray-500 ml-1">°/s</span></div>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 transition-colors" id="speedIncBtn">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-medium text-gray-700">Sound Alerts</label>
+                            <button class="px-4 py-2 rounded-md text-sm font-medium text-white bg-green-500 hover:bg-green-600 transition-colors" id="soundToggleBtn">ON</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Instructions & History -->
+            <div class="space-y-6">
+                <!-- Instructions -->
+                <div class="bg-blue-50 rounded-xl border border-blue-200 p-6">
+                    <h2 class="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="info" class="w-5 h-5"></i>
+                        Instructions
+                    </h2>
+                    <div class="space-y-3 text-sm text-blue-800">
+                        <div>
+                            <strong class="font-semibold">Real Device:</strong> 1) Upload Arduino sketch to Nano 33 BLE, 2) Mount device 3cm above kneecap on thigh, 3) Click "Connect to REHABAND", 4) Click "Calibrate" and perform 5 perfect squats, 5) Use "Start Session" to begin tracking
+                        </div>
+                        <div>
+                            <strong class="font-semibold">Demo:</strong> Click "Try Demo Mode" to see the interface with simulated squat data (set ROM=90°, Speed=30°/s for best demo results)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rep History -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="history" class="w-5 h-5"></i>
+                        Rep History
+                    </h2>
+                    <div id="repContainer">
+                        <div class="text-center text-gray-500 py-8" id="noRepsMessage">
+                            <i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
+                            <p class="text-sm">No reps yet. Start exercising to see data!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="fixed bottom-4 right-4 max-w-md hidden" id="errorMessage">
+            <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                    <span class="text-sm font-medium">Error Message</span>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
         let device, server, service;
         let romChar, speedChar, jerkinessChar, repCountChar, sessionControlChar, calibrationChar, targetROMChar, targetSpeedChar;
         let repsData = [];
@@ -611,7 +265,7 @@
         const soundToggleBtn = document.getElementById('soundToggleBtn');
         const demoDisclaimer = document.getElementById('demoDisclaimer');
         const calibrateBtn = document.getElementById('calibrateBtn');
-        const sessionControlsStatus = document.querySelector('.session-controls div:last-child');
+        const sessionControlsStatus = document.getElementById('sessionControlsStatus');
 
         connectBtn.addEventListener('click', connectToDevice);
         demoBtn.addEventListener('click', startDemoMode);
@@ -631,11 +285,14 @@
             connectBtn.disabled = true;
         }
 
+        const isConnected = () => device && device.gatt && device.gatt.connected;
+
         async function connectToDevice() {
             try {
                 hideError();
                 connectBtn.disabled = true;
-                connectBtn.textContent = 'Connecting...';
+                connectBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin mr-2"></i>Connecting...';
+                lucide.createIcons();
 
                 // Request device
                 device = await navigator.bluetooth.requestDevice({
@@ -687,21 +344,21 @@
                 }
 
                 // Connection successful
-                statusDot.classList.add('connected');
+                statusDot.classList.remove('bg-red-400');
+                statusDot.classList.add('bg-green-400');
                 statusText.textContent = 'Connected';
-                connectBtn.textContent = 'Connected ✓';
-                connectBtn.style.background = '#16a34a';
+                connectBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>Connected';
+                connectBtn.classList.remove('bg-primary-gradient');
+                connectBtn.classList.add('bg-green-500');
                 
                 // Send current settings to Arduino immediately upon connection
                 await sendSettingsToArduino();
                 
                 // Enable session controls
                 startResetBtn.disabled = false;
-                startResetBtn.style.opacity = '1';
-                startResetBtn.style.cursor = 'pointer';
+                startResetBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
                 calibrateBtn.disabled = false;
-                calibrateBtn.style.opacity = '1';
-                calibrateBtn.style.cursor = 'pointer';
+                calibrateBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
                 sessionControlsStatus.textContent = '✨ First time? Click "Calibrate" to personalize your targets!';
                 
                 sessionStartTime = Date.now();
@@ -762,8 +419,9 @@
                             const currentCalibrationRep = repValue.getUint8(0);
                             
                             // Update button text with progress
-                            calibrateBtn.textContent = `Calibrating... (${currentCalibrationRep}/5)`;
+                            calibrateBtn.innerHTML = `<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrating... (${currentCalibrationRep}/5)`;
                             sessionControlsStatus.textContent = `Calibration progress: ${currentCalibrationRep}/5 squats completed`;
+                            lucide.createIcons();
                             
                             console.log(`Calibration progress: ${currentCalibrationRep}/5 squats completed`);
                         } catch (error) {
@@ -797,10 +455,12 @@
                     
                     // Reset calibration state
                     isCalibrating = false;
-                    calibrateBtn.textContent = 'Calibrate (5 Reps)';
-                    calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrate';
+                    calibrateBtn.classList.remove('bg-danger-gradient');
+                    calibrateBtn.classList.add('bg-primary-gradient');
                     calibrateBtn.disabled = false;
                     sessionControlsStatus.textContent = 'Calibration complete! Ready for sessions';
+                    lucide.createIcons();
                     
                     showError(`Calibration complete! New targets: ${settings.targetROM}° ROM, ${settings.speedTarget}°/s speed`);
                     setTimeout(hideError, 5000);
@@ -819,7 +479,9 @@
             }
             
             // Hide "no reps" message
-            noRepsMessage.style.display = 'none';
+            if (noRepsMessage) {
+                noRepsMessage.style.display = 'none';
+            }
             
             // Determine jerkiness text and status from RMS jerk value
             let jerkinessText, jerkinessStatus;
@@ -855,50 +517,56 @@
             const romStatus = (rom >= (romTarget - romTolerance) && rom <= (romTarget + romTolerance)) ? 'good' : 
                              (rom >= (romTarget - 25) && rom <= (romTarget + 25)) ? 'caution' : 'bad';
             
-            // jerkinessStatus already determined above
-            
             // Determine overall badge
             const overallBadge = (romStatus === 'good' && speedStatus === 'good' && jerkinessStatus === 'good') ? 'good' :
                                  (romStatus === 'bad' || speedStatus === 'bad' || jerkinessStatus === 'bad') ? 'bad' : 'caution';
 
-            // Debug logging for demo mode
             console.log(`Rep ${repNum}: ROM=${rom}° (${romStatus}), Speed=${speed}s (${speedStatus}), Jerkiness=${jerkiness} (${jerkinessStatus}) → Overall: ${overallBadge}`);
 
+            const badgeColors = {
+                good: 'bg-green-100 text-green-800',
+                caution: 'bg-yellow-100 text-yellow-800', 
+                bad: 'bg-red-100 text-red-800'
+            };
+
+            const valueColors = {
+                good: 'text-green-600 bg-green-50',
+                caution: 'text-yellow-600 bg-yellow-50',
+                bad: 'text-red-600 bg-red-50'
+            };
+
             const repCard = document.createElement('div');
-            repCard.className = 'rep-card';
+            repCard.className = 'bg-white rounded-lg border border-gray-200 p-4 mb-3 shadow-sm hover:shadow-md transition-shadow';
             repCard.innerHTML = `
-                <div class="rep-header">
-                    <div class="rep-number">
-                        <span class="rep-icon">${repNum}</span>
-                        Rep ${repNum}
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-primary-gradient text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            ${repNum}
+                        </div>
+                        <span class="font-medium text-gray-900">Rep ${repNum}</span>
                     </div>
-                    <span class="overall-badge badge-${overallBadge}">
+                    <span class="px-3 py-1 rounded-full text-xs font-medium ${badgeColors[overallBadge]}">
                         ${overallBadge === 'good' ? 'Good' : overallBadge === 'caution' ? 'Caution' : 'Poor'}
                     </span>
                 </div>
-                <div class="metrics">
-                    <div class="metric-row">
-                        <span class="metric-label">ROM Angle</span>
-                        <span class="metric-value value-${romStatus}">${rom}°</span>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div class="text-center">
+                        <div class="text-gray-500 text-xs">ROM Angle</div>
+                        <div class="font-semibold ${valueColors[romStatus]} px-2 py-1 rounded">${rom}°</div>
                     </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Speed</span>
-                        <span class="metric-value value-${speedStatus}">${speedText}</span>
+                    <div class="text-center">
+                        <div class="text-gray-500 text-xs">Speed</div>
+                        <div class="font-semibold ${valueColors[speedStatus]} px-2 py-1 rounded">${speedText}</div>
                     </div>
-                    <div class="metric-row">
-                        <span class="metric-label">Smoothness</span>
-                        <span class="metric-value value-${jerkinessStatus}">${jerkinessText}</span>
+                    <div class="text-center">
+                        <div class="text-gray-500 text-xs">Smoothness</div>
+                        <div class="font-semibold ${valueColors[jerkinessStatus]} px-2 py-1 rounded">${jerkinessText}</div>
                     </div>
                 </div>
             `;
 
             // Add to top of container with animation
             repContainer.insertBefore(repCard, repContainer.firstChild);
-            
-            // Trigger animation
-            setTimeout(() => {
-                repCard.classList.add('show');
-            }, 50);
 
             // Store rep data
             repsData.push({ rom, speed, jerkiness, status: overallBadge });
@@ -929,9 +597,9 @@
 
         function animateStatUpdate(statId) {
             const stat = document.getElementById(statId);
-            stat.classList.add('updated');
+            stat.classList.add('ring-2', 'ring-blue-300');
             setTimeout(() => {
-                stat.classList.remove('updated');
+                stat.classList.remove('ring-2', 'ring-blue-300');
             }, 300);
         }
 
@@ -949,45 +617,53 @@
         }
 
         function resetConnectionState() {
-            statusDot.classList.remove('connected');
+            statusDot.classList.remove('bg-green-400');
+            statusDot.classList.add('bg-red-400');
             statusText.textContent = 'Not Connected';
             connectBtn.disabled = false;
-            connectBtn.textContent = 'Connect to REHABAND';
-            connectBtn.style.background = '';
+            connectBtn.innerHTML = '<i data-lucide="bluetooth" class="w-4 h-4 mr-2"></i>Connect to REHABAND';
+            connectBtn.classList.remove('bg-green-500');
+            connectBtn.classList.add('bg-primary-gradient');
             
             // Disable session controls
             startResetBtn.disabled = true;
-            startResetBtn.style.opacity = '0.5';
-            startResetBtn.style.cursor = 'not-allowed';
+            startResetBtn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
             calibrateBtn.disabled = true;
-            calibrateBtn.style.opacity = '0.5';
-            calibrateBtn.style.cursor = 'not-allowed';
+            calibrateBtn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
             sessionControlsStatus.textContent = 'Connect to device to enable session controls';
             
             // Reset session state
             isSessionActive = false;
-            startResetBtn.textContent = 'Start Session';
-            startResetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            startResetBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4 mr-2"></i>Start Session';
+            startResetBtn.classList.remove('bg-danger-gradient');
+            startResetBtn.classList.add('bg-warning-gradient');
             
             // Reset calibration state
             if (isCalibrating) {
                 isCalibrating = false;
-                calibrateBtn.textContent = 'Calibrate (5 Reps)';
-                calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrate';
+                calibrateBtn.classList.remove('bg-danger-gradient');
+                calibrateBtn.classList.add('bg-primary-gradient');
             }
             
             // Reset session data
             sessionStartTime = null;
             lastRepCount = 0;
+            
+            lucide.createIcons();
         }
 
         function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.querySelector('span').textContent = message;
+            errorEl.classList.remove('hidden');
+            
+            // Auto hide after 10 seconds
+            setTimeout(hideError, 10000);
         }
 
         function hideError() {
-            errorMessage.style.display = 'none';
+            document.getElementById('errorMessage').classList.add('hidden');
         }
 
         // Session Control Functions
@@ -995,8 +671,9 @@
             if (!isSessionActive) {
                 // Start session
                 isSessionActive = true;
-                startResetBtn.textContent = 'Reset Session';
-                startResetBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+                startResetBtn.innerHTML = '<i data-lucide="square" class="w-4 h-4 mr-2"></i>Reset Session';
+                startResetBtn.classList.remove('bg-warning-gradient');
+                startResetBtn.classList.add('bg-danger-gradient');
                 
                 // Send start command to Arduino with retry logic
                 if (sessionControlChar) {
@@ -1017,17 +694,17 @@
                 updateSummary();
                 
                 // Clear rep history display
-                repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">Session started! Begin exercising to see data.</div>';
+                repContainer.innerHTML = '<div class="text-center text-gray-500 py-8"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">Session started! Begin exercising to see data.</p></div>';
                 
                 sessionControlsStatus.textContent = 'Session active - exercising...';
                 showError('Session started! Current angle set as reference position.');
-                setTimeout(hideError, 3000);
                 
             } else {
                 // Reset session
                 isSessionActive = false;
-                startResetBtn.textContent = 'Start Session';
-                startResetBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                startResetBtn.innerHTML = '<i data-lucide="play" class="w-4 h-4 mr-2"></i>Start Session';
+                startResetBtn.classList.remove('bg-danger-gradient');
+                startResetBtn.classList.add('bg-warning-gradient');
                 
                 // Send reset command to Arduino with retry logic
                 if (sessionControlChar) {
@@ -1052,12 +729,13 @@
                 document.getElementById('avgAngle').textContent = '--';
                 
                 // Clear rep history display
-                repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">Session reset. Start exercising to see data!</div>';
+                repContainer.innerHTML = '<div class="text-center text-gray-500 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">Session reset. Start exercising to see data!</p></div>';
                 
                 sessionControlsStatus.textContent = 'Ready to start session or calibrate';
                 showError('Session reset successfully!');
-                setTimeout(hideError, 3000);
             }
+            
+            lucide.createIcons();
         }
 
         // BLE Retry Helper Function
@@ -1097,8 +775,9 @@
             calibrationData = [];
             calibrationCount = 0;
             
-            calibrateBtn.textContent = 'Calibrating... (0/5)';
-            calibrateBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrating... (0/5)';
+            calibrateBtn.classList.remove('bg-primary-gradient');
+            calibrateBtn.classList.add('bg-danger-gradient');
             calibrateBtn.disabled = true;
             sessionControlsStatus.textContent = 'Calibrating... Perform 5 good form squats';
             
@@ -1113,8 +792,9 @@
                     
                     // Reset calibration state on failure
                     isCalibrating = false;
-                    calibrateBtn.textContent = 'Calibrate (5 Reps)';
-                    calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrate';
+                    calibrateBtn.classList.remove('bg-danger-gradient');
+                    calibrateBtn.classList.add('bg-primary-gradient');
                     calibrateBtn.disabled = false;
                     sessionControlsStatus.textContent = 'Ready to start session or calibrate';
                     return;
@@ -1129,9 +809,10 @@
             lastRepCount = 0;
             
             // Clear rep history
-            repContainer.innerHTML = '<div style="text-align: center; color: #667eea; font-size: 12px; padding: 20px;">Calibration in progress... Perform 5 good form squats.</div>';
+            repContainer.innerHTML = '<div class="text-center text-blue-600 py-8"><i data-lucide="target" class="w-12 h-12 mx-auto mb-3"></i><p class="text-sm">Calibration in progress... Perform 5 good form squats.</p></div>';
             
             showError('Calibration started! Perform 5 squats with your best form.');
+            lucide.createIcons();
         }
 
         function handleCalibrationRep(rom, speed, jerkiness) {
@@ -1140,7 +821,8 @@
             calibrationCount++;
             calibrationData.push({ rom, speed, jerkiness });
             
-            calibrateBtn.textContent = `Calibrating... (${calibrationCount}/5)`;
+            calibrateBtn.innerHTML = `<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrating... (${calibrationCount}/5)`;
+            lucide.createIcons();
             
             if (calibrationCount >= 5) {
                 completeCalibration();
@@ -1167,8 +849,9 @@
             
             // Reset calibration state
             isCalibrating = false;
-            calibrateBtn.textContent = 'Calibrate (5 Reps)';
-            calibrateBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrate';
+            calibrateBtn.classList.remove('bg-danger-gradient');
+            calibrateBtn.classList.add('bg-primary-gradient');
             calibrateBtn.disabled = false;
             sessionControlsStatus.textContent = 'Calibration complete! Ready for sessions';
             
@@ -1177,10 +860,11 @@
             lastRepCount = 0;
             
             // Clear rep history
-            repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">Calibration complete! Start exercising to see data!</div>';
+            repContainer.innerHTML = '<div class="text-center text-gray-500 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">Calibration complete! Start exercising to see data!</p></div>';
             
             showError(`Calibration complete! New targets: ${avgROM}° ROM, ${avgSpeed}s speed`);
             setTimeout(hideError, 5000);
+            lucide.createIcons();
         }
 
         // Demo Mode Functions
@@ -1188,21 +872,24 @@
             hideError();
             
             // Simulate connection
-            statusDot.classList.add('connected');
+            statusDot.classList.remove('bg-red-400');
+            statusDot.classList.add('bg-green-400');
             statusText.textContent = 'Connected (Demo)';
             connectBtn.style.display = 'none';
-            demoBtn.textContent = 'Demo Running...';
+            demoBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin mr-2"></i>Demo Running...';
             demoBtn.disabled = true;
-            demoBtn.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            demoBtn.classList.remove('bg-success-gradient');
+            demoBtn.classList.add('bg-danger-gradient');
             
             // Show demo disclaimer
-            demoDisclaimer.style.display = 'block';
+            demoDisclaimer.classList.remove('hidden');
             
             sessionStartTime = Date.now();
             updateDuration();
             
             // Generate demo reps with delays
             simulateReps();
+            lucide.createIcons();
         }
 
         function simulateReps() {
@@ -1228,8 +915,9 @@
                     setTimeout(addNextRep, delay);
                 } else {
                     // Demo complete
-                    demoBtn.textContent = 'Demo Complete ✓';
-                    demoBtn.style.background = '#16a34a';
+                    demoBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>Demo Complete';
+                    demoBtn.classList.remove('bg-danger-gradient');
+                    demoBtn.classList.add('bg-green-500');
                     
                     // Show completion message
                     setTimeout(() => {
@@ -1241,6 +929,7 @@
                         }, 10000);
                     }, 1000);
                 }
+                lucide.createIcons();
             }
             
             // Start first rep after 1 second
@@ -1249,15 +938,17 @@
 
         function resetDemo() {
             // Reset UI state
-            statusDot.classList.remove('connected');
+            statusDot.classList.remove('bg-green-400');
+            statusDot.classList.add('bg-red-400');
             statusText.textContent = 'Not Connected';
             connectBtn.style.display = '';
-            demoBtn.textContent = 'Try Demo Mode';
+            demoBtn.innerHTML = '<i data-lucide="play-circle" class="w-4 h-4 mr-2"></i>Try Demo Mode';
             demoBtn.disabled = false;
-            demoBtn.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
+            demoBtn.classList.remove('bg-green-500', 'bg-danger-gradient');
+            demoBtn.classList.add('bg-success-gradient');
             
             // Hide demo disclaimer
-            demoDisclaimer.style.display = 'none';
+            demoDisclaimer.classList.add('hidden');
             
             // Clear rep data
             repsData = [];
@@ -1270,15 +961,15 @@
             document.getElementById('duration').textContent = '0 mins';
             
             // Clear rep cards
-            repContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 12px; padding: 20px;" id="noRepsMessage">No reps yet. Start exercising to see data!</div>';
+            repContainer.innerHTML = '<div class="text-center text-gray-500 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">No reps yet. Start exercising to see data!</p></div>';
             
             hideError();
+            lucide.createIcons();
         }
 
         // Settings Management Functions
-        // Function to send current settings to Arduino
         async function sendSettingsToArduino() {
-            if (targetROMChar && targetSpeedChar && isConnected) {
+            if (targetROMChar && targetSpeedChar && isConnected()) {
                 try {
                     await writeCharacteristicWithRetry(targetROMChar, new Float32Array([settings.targetROM]));
                     await writeCharacteristicWithRetry(targetSpeedChar, new Float32Array([settings.speedTarget]));
@@ -1310,17 +1001,17 @@
 
         function updateSettingDisplay(type, value) {
             if (type === 'rom') {
-                romValue.innerHTML = `${value}<span class="control-unit">°</span>`;
+                romValue.innerHTML = `${value}<span class="text-xs text-gray-500 ml-1">°</span>`;
             } else if (type === 'speed') {
-                speedValue.innerHTML = `${Math.round(value)}<span class="control-unit">°/s</span>`;
+                speedValue.innerHTML = `${Math.round(value)}<span class="text-xs text-gray-500 ml-1">°/s</span>`;
             }
         }
 
         function animateSettingChange(type) {
             const element = type === 'rom' ? romValue : speedValue;
-            element.classList.add('updated');
+            element.classList.add('ring-2', 'ring-blue-300');
             setTimeout(() => {
-                element.classList.remove('updated');
+                element.classList.remove('ring-2', 'ring-blue-300');
             }, 300);
         }
 
@@ -1390,18 +1081,16 @@
 
         function updateSoundToggleDisplay() {
             soundToggleBtn.textContent = settings.soundAlerts ? 'ON' : 'OFF';
-            soundToggleBtn.style.background = settings.soundAlerts ? '#16a34a' : '#ef4444';
-            soundToggleBtn.style.color = 'white';
+            soundToggleBtn.classList.remove('bg-green-500', 'bg-red-500');
+            soundToggleBtn.classList.add(settings.soundAlerts ? 'bg-green-500' : 'bg-red-500');
         }
 
-        // Add some visual feedback for testing
+        // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('REHABAND BLE App loaded');
+            console.log('REHABAND Modern UI loaded with Tailwind CSS');
             loadSettings(); // Load saved settings on page load
+            lucide.createIcons(); // Initialize all icons
         });
     </script>
-            </div>
-        </div>
-    </div>
 </body>
 </html>
