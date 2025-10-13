@@ -1,48 +1,51 @@
 # REHABAND - Smart Rehabilitation Device
 
-A real-time rehabilitation monitoring system that uses Arduino Nano 33 BLE and Web Bluetooth API to track exercise form and provide instant feedback.
+A real-time rehabilitation squat monitoring system that uses Arduino Nano 33 BLE and Web Bluetooth API to track knee flexion form and provide instant feedback. Optimized for thigh-mounted IMU placement with realistic biomechanical ranges (0°-150° knee flexion).
 
 ![REHABAND Interface](https://img.shields.io/badge/Status-Active-green) ![Arduino](https://img.shields.io/badge/Arduino-Nano%2033%20BLE-blue) ![Web Bluetooth](https://img.shields.io/badge/Web%20Bluetooth-Supported-purple)
 
 ## 🎯 What is REHABAND?
 
-REHABAND is a smart rehabilitation device that:
-- **Tracks exercise form** using IMU sensors
-- **Provides real-time feedback** on range of motion, speed, and smoothness
-- **Color-codes performance** (Good/Caution/Poor)
+REHABAND is a smart squat rehabilitation device that:
+- **Tracks squat form** using thigh-mounted IMU sensors with complementary filtering
+- **Provides real-time feedback** on knee flexion angle (30°-150°), angular velocity, and movement smoothness
+- **Color-codes performance** (Good/Caution/Poor) with personalized calibrated targets
 - **Works wirelessly** via Bluetooth Low Energy
-- **Displays live data** in a beautiful web interface
+- **Displays live data** in a beautiful web interface with realistic knee biomechanics
 
 ## 📱 Features
 
 ### Core Features
-- **Real-time Rep Tracking**: Automatically detects and counts exercise repetitions
-- **Performance Metrics**: ROM angle, speed analysis, and jerkiness detection
-- **Interactive Settings**: Adjust ROM and Speed targets with +/- controls
+- **Real-time Squat Tracking**: 4-state machine (STRAIGHT → SQUATTING → BOTTOM → RISING) with robust detection
+- **Advanced Performance Metrics**: Knee flexion angle, angular velocity (°/s), and RMS jerkiness analysis
+- **Realistic Settings**: ROM range 30°-150° (quarter to deep squat), Speed 20-50°/s for controlled rehabilitation
 - **Smart Sound Alerts**: Audio feedback for poor form (silent for good performance)
 - **Live Dashboard**: Session summary with stats and rep history
-- **Enhanced Demo Mode**: Test interface with visual feedback and calibration notes
+- **Enhanced Demo Mode**: Realistic squat examples with proper knee flexion angles
 - **Persistent Settings**: Your preferences save automatically using localStorage
 - **Mobile Optimized**: Responsive design with improved spacing and layout
 - **Cross-platform**: Works on any device with Chrome/Edge browser
 
-### New Session Control Features
-- **Start/Reset Button**: Control exercise sessions with reference angle setting
-- **5-Rep Calibration**: Automatic calibration system to personalize targets
-- **Reference Angle Setting**: Each session starts with current position as baseline
+### Advanced Session Control Features
+- **Start/Reset Button**: Control squat sessions with reference angle setting (0° straight leg baseline)
+- **5-Rep Calibration**: Personalized target calculation based on user's best form (90% ROM, 110% speed tolerance)
+- **Standing Position Calibration**: True 0° knee flexion baseline for accurate measurements
+- **Two-Way BLE Communication**: Sends targets to Arduino, receives calibrated values
 
-### Enhanced Angle Tracking
-- **State Machine Algorithm**: Robust IDLE → BENDING → STRAIGHTENING progression
-- **Stable Angle Tracking**: Continuous baseline calibration during rest periods
-- **Rep Cooldown System**: 500ms cooldown prevents double-counting of reps
-- **Peak Bend Detection**: Accurately captures maximum bend angle achieved
-- **Better ROM Calculation**: Based on stable start position to peak bend angle
+### Advanced Biomechanical Tracking
+- **4-State Squat Machine**: STRAIGHT → SQUATTING_DOWN → BOTTOM_POSITION → RISING_UP with timeout protection
+- **Complementary Filtering**: Combines accelerometer + gyroscope for drift-free pitch measurement
+- **Realistic Knee Flexion**: 0° (standing) to 150° (deep squat) with 30° minimum for valid reps
+- **RMS Jerkiness Analysis**: Root Mean Square calculation for movement smoothness assessment
+- **Angular Velocity Tracking**: Real-time speed measurement in °/s with moving average smoothing
+- **Peak Squat Detection**: Accurately captures maximum knee flexion during squat
 
 ## 🛠 Hardware Requirements
 
 - **Arduino Nano 33 BLE** (with built-in BMI270_BMM150 or LSM9DS1 IMU sensor)
+- **Mounting Solution**: Strap or band to secure device 3cm above kneecap on thigh (parallel to thigh)
 - USB cable for programming
-- Computer with Chrome or Edge browser
+- Computer with Chrome or Edge browser (Web Bluetooth support required)
 
 ### IMU Sensor Compatibility
 - **BMI270_BMM150**: Default for newer Arduino Nano 33 BLE boards
@@ -59,10 +62,11 @@ cd rehaband-project
 
 ### 1. Try Demo Mode First
 1. Open `rehaband-app-ble.html` in Chrome or Edge (from the cloned folder)
-2. Click **"Try Demo Mode"** (green button turns red while running)  
-3. Watch as 5 simulated reps appear with real-time feedback and sound alerts
-4. Adjust settings with +/- controls to see how thresholds affect evaluation
-5. This shows you exactly how the interface works!
+2. **For best demo results**: Set Target ROM to **90°** and Max Speed to **30°/s** in settings
+3. Click **"Try Demo Mode"** (green button turns red while running)  
+4. Watch as 5 simulated squats appear with realistic knee flexion angles and real-time feedback
+5. Observe how Rep 1 (90°) and Rep 3 (95°) show as "Good" with controlled speed
+6. Adjust settings with +/- controls to see how thresholds affect evaluation
 
 ### 2. Set Up Arduino (for real data)
 1. Install required libraries in Arduino IDE:
@@ -78,15 +82,16 @@ cd rehaband-project
 6. Arduino will start advertising as "REHABAND"
 
 ### 3. Connect Real Device
-1. Make sure Arduino is powered and running the sketch
-2. Open `rehaband-app-ble.html` in Chrome/Edge (from the cloned folder)
-3. Click **"Connect to REHABAND"** (blue button)
-4. Select "REHABAND" from Bluetooth device list
-5. **Session Controls** will appear with two buttons:
-   - **"Start Session"** - Sets reference angle and begins tracking
-   - **"Calibrate (5 Reps)"** - Personalizes targets based on your best form
-6. **Recommended**: Calibrate first for personalized feedback
-7. Start exercising - reps will appear automatically!
+1. **Mount Arduino**: Secure device 3cm above kneecap on thigh (parallel to thigh)
+2. Make sure Arduino is powered and running the sketch
+3. Open `rehaband-app-ble.html` in Chrome/Edge (from the cloned folder)
+4. Click **"Connect to REHABAND"** (blue button)
+5. Select "REHABAND" from Bluetooth device list
+6. **Session Controls** will appear with two buttons:
+   - **"Start Session"** - Sets 0° reference (standing position) and begins tracking
+   - **"Calibrate (5 Reps)"** - Personalizes targets based on your 5 best squats
+7. **IMPORTANT**: Always calibrate first - perform 5 squats with perfect form
+8. Start squatting - system detects 30°-150° knee flexion automatically!
 
 ## 📁 File Structure
 
@@ -177,24 +182,40 @@ After calibration, check your new targets in the settings:
 
 ## ⚙️ Interactive Settings
 
-### Adjustable Thresholds
-- **Target ROM**: Set your ideal range of motion (50° - 150° range)
-- **Speed Target**: Set your preferred rep timing (1.0s - 6.0s range)
+### Adjustable Thresholds (Realistic Biomechanical Ranges)
+- **Target ROM**: Set your ideal knee flexion (30°-150° range) - 90° = parallel squat standard
+- **Max Speed for "Controlled" Rating**: Set angular velocity threshold (20°/s-50°/s) - lower = more controlled
 - **+/- Controls**: Click buttons to adjust values in real-time
 - **Auto-Save**: Settings persist across browser sessions
 - **Live Updates**: Changes affect evaluation immediately
 
-### Dynamic Color-Coding
+### Dynamic Color-Coding (Based on Realistic Knee Biomechanics)
 - **ROM Tolerance**: Target ±10° = Good, Target ±25° = Caution, beyond = Poor
-- **Speed Tolerance**: Target ±0.5s = Good, beyond = Poor
+- **Speed Evaluation**: ≤Target = Controlled (Good), Target to 1.5x = Moderate (Caution), >1.5x = Too Fast (Poor)
+- **Smoothness Analysis**: RMS Jerk <50 = Smooth, 50-150 = Moderate, >150 = Jerky
 - **Instant Feedback**: Both demo and real data use your custom thresholds
 
-## 📊 Performance Metrics
+## 📊 Performance Metrics (Biomechanically Accurate)
 
-### Default Thresholds (Customizable)
-- **ROM Target**: 95° (Good: 85°-105°, Caution: 70°-120°, Poor: beyond)
-- **Speed Target**: 3.2s (Good: 2.7s-3.7s, Poor: beyond)
-- **Jerkiness**: Based on sensor data (Good: smooth, Caution: some, Poor: jerky)
+### Default Thresholds (Personalized via Calibration)
+- **ROM Target**: 90° knee flexion (Good: 80°-100°, Caution: 65°-115°, Poor: <65° or >115°)
+- **Speed Target**: 30°/s angular velocity (Good: ≤30°/s, Caution: 30-45°/s, Poor: >45°/s)
+- **Smoothness**: RMS Jerk analysis (Good: <50, Caution: 50-150, Poor: >150)
+- **Knee Flexion Range**: 0° (standing) to 150° (deep squat) with 30° minimum for valid reps
+
+### Realistic Squat Biomechanics
+
+**Knee Flexion Ranges:**
+- **0°**: Standing (full leg extension)
+- **30°**: Quarter squat (minimum for valid rep)
+- **90°**: Parallel squat (standard rehabilitation target)  
+- **130-150°**: Deep squat (advanced range)
+
+**Angular Velocity Guidelines:**
+- **20°/s**: Slow, controlled pace (~4.5 seconds per squat)
+- **30°/s**: Standard controlled pace (~3 seconds per squat)
+- **40°/s**: Moderate pace (~2.25 seconds per squat)
+- **50°/s**: Upper safe limit (~1.8 seconds per squat)
 
 ## 🔧 Troubleshooting
 
@@ -238,22 +259,28 @@ After calibration, check your new targets in the settings:
 
 ## 🔄 Technical Details
 
-### BLE Service Structure
+### Enhanced BLE Service Structure
 - **Service UUID**: `180D` (Heart Rate Service - repurposed)
-- **ROM Characteristic**: `2A37` (angle data)
-- **Speed Characteristic**: `2A38` (timing data)  
-- **Jerkiness Characteristic**: `2A39` (smoothness level)
+- **ROM Characteristic**: `2A37` (knee flexion angle data in degrees)
+- **Speed Characteristic**: `2A38` (angular velocity data in °/s)  
+- **Jerkiness Characteristic**: `2A39` (RMS jerk smoothness analysis)
 - **Rep Count Characteristic**: `2A3A` (current rep number)
 - **Session Control Characteristic**: `2A3B` (start/reset commands)
+- **Calibration Characteristic**: `2A3C` (calibration control and results)
+- **Target ROM Characteristic**: `2A3D` (target ROM from app to Arduino)
+- **Target Speed Characteristic**: `2A3E` (target speed from app to Arduino)
 
-### Arduino IMU Processing
+### Advanced Arduino IMU Processing
 - **Sensor**: BMI270_BMM150 or LSM9DS1 (accelerometer + gyroscope)
-- **Sampling Rate**: 20Hz
-- **Algorithm**: State machine with IDLE → BENDING → STRAIGHTENING states
-- **Angle Calculation**: Pitch from accelerometer data with stable angle tracking
-- **Rep Detection**: Peak bend detection with cooldown system
-- **Baseline System**: Continuous stable angle calibration during rest periods
-- **Session Control**: BLE commands for start/reset with angle reference setting
+- **Sampling Rate**: 20Hz (50ms intervals)
+- **Advanced Filtering**: Complementary filter combining accelerometer + gyroscope for drift-free pitch
+- **4-State Machine**: STRAIGHT → SQUATTING_DOWN → BOTTOM_POSITION → RISING_UP
+- **Biomechanical Angle Calculation**: True knee flexion from 0° (standing) baseline
+- **RMS Jerkiness Analysis**: Root Mean Square calculation for movement smoothness
+- **Angular Velocity Tracking**: Real-time speed measurement with moving average smoothing
+- **Robust Squat Detection**: 30° minimum knee flexion with timeout protection
+- **Two-Way Calibration**: Receives targets from app, calculates personalized thresholds
+- **Thigh-Mounted Optimization**: Designed for 3cm above kneecap placement
 
 ## 🤝 Contributing
 
@@ -270,6 +297,30 @@ This project is open source and available under the [MIT License](LICENSE).
 ## 👥 Team
 
 Created by **Nusurvivors** for smart rehabilitation monitoring.
+
+---
+
+## 🔬 **Recent Major Improvements (v2.0)**
+
+### **Biomechanically Accurate Tracking**
+- **Realistic Knee Flexion**: 0° (standing) to 150° (deep squat) with proper biomechanical ranges
+- **Complementary Filtering**: Advanced sensor fusion for drift-free angle measurement  
+- **4-State Squat Machine**: Robust detection system optimized for rehabilitation
+
+### **Personalized Calibration System**
+- **5-Rep Calibration**: Creates user-specific targets based on individual capabilities
+- **Two-Way BLE Communication**: App sends commands, receives personalized thresholds
+- **Standing Position Baseline**: True 0° knee flexion reference for accurate measurement
+
+### **Clinical-Grade Metrics**
+- **RMS Jerkiness Analysis**: Objective movement smoothness assessment
+- **Angular Velocity Tracking**: Real-time speed measurement in °/s with filtering
+- **Realistic Speed Ranges**: 20-50°/s for controlled rehabilitation (1.8-4.5 seconds per squat)
+
+### **Enhanced User Experience**
+- **Intuitive Settings**: "Max Speed for Controlled Rating" instead of technical jargon
+- **Realistic Demo Mode**: Examples with proper knee flexion angles and clear guidance
+- **Comprehensive Instructions**: Step-by-step setup from hardware mounting to calibration
 
 ---
 
