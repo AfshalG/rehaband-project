@@ -11,6 +11,7 @@ BLEIntCharacteristic sessionControlChar("2A3B", BLEWrite);        // Session con
 BLEIntCharacteristic calibrationChar("2A3C", BLEWrite | BLERead | BLENotify); // Calibration control
 BLEFloatCharacteristic targetROMChar("2A3D", BLEWrite);           // Target ROM setting
 BLEFloatCharacteristic targetSpeedChar("2A3E", BLEWrite);         // Target speed setting
+BLEIntCharacteristic targetRepsChar("2A3F", BLEWrite);            // Target reps setting
 
 // IMU and exercise tracking variables
 float accelX, accelY, accelZ;
@@ -43,6 +44,7 @@ float calibrationAngles[5] = {0};
 float calibrationSpeeds[5] = {0};
 float targetROM = 90.0;   // Default - will be updated from app settings
 float targetSpeed = 30.0; // Default - will be updated from app settings
+int targetReps = 10;      // Default - will be updated from app settings
 
 // Calibration and thresholds
 const float ANGLE_THRESHOLD = 30.0;  // Minimum angle change to count as rep
@@ -61,19 +63,24 @@ void setup() {
   Serial.begin(9600);
   while (!Serial); // Wait for Serial Monitor to open
 
-  Serial.println("Initializing IMU...");
+  Serial.println("====================================");
+  Serial.println("   REHABAND Smart Squat Tracker");
+  Serial.println("====================================");
+  Serial.println("Initializing IMU sensor...");
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
+    Serial.println("[ERROR] FAILED to initialize IMU!");
+    Serial.println("Please check connections and try again.");
     while (1);
   }
-  Serial.println("IMU initialized.");
+  Serial.println("[OK] IMU sensor initialized successfully");
 
-  Serial.println("Initializing BLE...");
+  Serial.println("Initializing Bluetooth...");
   if (!BLE.begin()) {
-    Serial.println("Starting BLE failed!");
+    Serial.println("[ERROR] FAILED to start Bluetooth!");
+    Serial.println("Please reset Arduino and try again.");
     while (1);
   }
-  Serial.println("BLE initialized.");
+  Serial.println("[OK] Bluetooth initialized successfully");
   
   BLE.setLocalName("REHABAND");
   BLE.setAdvertisedService(rehabandService);
@@ -86,6 +93,7 @@ void setup() {
   rehabandService.addCharacteristic(calibrationChar);
   rehabandService.addCharacteristic(targetROMChar);
   rehabandService.addCharacteristic(targetSpeedChar);
+  rehabandService.addCharacteristic(targetRepsChar);
   
   BLE.addService(rehabandService);
   
@@ -97,18 +105,30 @@ void setup() {
   calibrationChar.writeValue(0);
   targetROMChar.writeValue(90.0);   // Match HTML default
   targetSpeedChar.writeValue(30.0);
+  targetRepsChar.writeValue(10);
   
   BLE.advertise();
   
-  Serial.println("REHABAND BLE device active, waiting for connections...");
+  Serial.println("[BLE] REHABAND now advertising as 'REHABAND'");
+  Serial.println("[INFO] Open your web app and click 'Connect to REHABAND'");
+  Serial.println("[INFO] Ensure device is mounted 3cm above kneecap on thigh");
+  Serial.println("------------------------------------");
+  Serial.println("USAGE TIPS:");
+  Serial.println("   1. Always calibrate first (5 perfect squats)");
+  Serial.println("   2. Start session to begin tracking reps");
+  Serial.println("   3. Monitor this window for real-time feedback");
+  Serial.println("====================================");
+  Serial.println("Waiting for connection...");
 }
 
 void loop() {
   BLEDevice central = BLE.central();
   
   if (central) {
-    Serial.print("Connected to central: ");
+    Serial.println("[CONNECT] CONNECTED to web app!");
+    Serial.print("[INFO] Device MAC: ");
     Serial.println(central.address());
+    Serial.println("[STATUS] Ready for calibration or session");
     
     while (central.connected()) {
       // Handle session control
@@ -117,10 +137,13 @@ void loop() {
         if (command == 1) {
           // Start session - reset everything
           resetSession();
-          Serial.println("✓ Session started");
+          Serial.println("[SESSION] SESSION STARTED!");
+          Serial.println("[INFO] Current angle set as reference (0 degrees)");
+          Serial.println("[INFO] Begin squatting - reps will be tracked automatically");
+          Serial.println("------------------------------------");
         } else if (command == 0) {
           resetSession();
-          Serial.println("✓ Session reset");
+          Serial.println("[SESSION] SESSION RESET - Ready for new session");
         }
       }
       
@@ -131,23 +154,47 @@ void loop() {
           isCalibrating = true;
           calibrationRep = 0;
           resetSession();
-          Serial.println("=== CALIBRATION STARTED ===");
-          Serial.println("Perform 5 controlled squats");
+          Serial.println("[CALIBRATION] === CALIBRATION MODE ACTIVATED ===");
+          Serial.println("[INSTRUCTIONS]:");
+          Serial.println("   - Perform 5 squats with PERFECT form");
+          Serial.println("   - Use your maximum comfortable depth");
+          Serial.println("   - Maintain steady, controlled pace");
+          Serial.println("   - Keep device position consistent");
+          Serial.println("[START] Begin your first calibration squat now!");
+          Serial.println("=====================================");
+        } else if (command == 0 && isCalibrating) {
+          // Stop calibration
+          isCalibrating = false;
+          calibrationRep = 0;
+          resetSession();
+          Serial.println("[STOP] CALIBRATION STOPPED manually");
+          Serial.println("[STATUS] Ready for new calibration or session");
+          Serial.println("=====================================");
         }
       }
       
       // Handle target ROM updates
       if (targetROMChar.written()) {
         targetROM = targetROMChar.value();
-        Serial.print("Target ROM updated: ");
-        Serial.println(targetROM);
+        Serial.print("[SETTING] Target ROM updated: ");
+        Serial.print(targetROM);
+        Serial.println(" degrees (knee flexion depth)");
       }
       
       // Handle target speed updates  
       if (targetSpeedChar.written()) {
         targetSpeed = targetSpeedChar.value();
-        Serial.print("Target Speed updated: ");
-        Serial.println(targetSpeed);
+        Serial.print("[SETTING] Target Time updated: ");
+        Serial.print(targetSpeed);
+        Serial.println("s (per rep duration)");
+      }
+      
+      // Handle target reps updates
+      if (targetRepsChar.written()) {
+        targetReps = targetRepsChar.value();
+        Serial.print("[SETTING] Target Reps updated: ");
+        Serial.print(targetReps);
+        Serial.println(" (per session)");
       }
       
       readIMU();
@@ -155,10 +202,13 @@ void loop() {
       delay(50);
     }
     
-    Serial.print("Disconnected from central: ");
+    Serial.println("[DISCONNECT] DISCONNECTED from web app");
+    Serial.print("[INFO] Device was: ");
     Serial.println(central.address());
+    Serial.println("[RESET] Session reset - ready for reconnection");
+    Serial.println("[BLE] Advertising as 'REHABAND' again...");
     
-    // The session is now reset only when the central device disconnects.
+    // Reset session when device disconnects
     resetSession();
   }
 }
@@ -210,7 +260,17 @@ void trackExercise() {
         peakBendAngle = lastStableAngle;
         jerkinessSum = totalGyro;
         jerkinessCount = 1;
-        Serial.println("Starting Bend...");
+        if (isCalibrating) {
+          Serial.print("[CAL] Rep ");
+          Serial.print(calibrationRep + 1);
+          Serial.println("/5 - Starting squat...");
+        } else {
+          Serial.print("[REP] Rep ");
+          Serial.print(currentRep + 1);
+          Serial.print("/");
+          Serial.print(targetReps);
+          Serial.println(" - Starting squat...");
+        }
       }
       break;
 
@@ -227,9 +287,9 @@ void trackExercise() {
         if (abs(peakBendAngle - startBendAngle) > ANGLE_THRESHOLD) {
           exerciseState = 2;
           bendEndTime = currentTime;  // NEW: Record when bending ends
-          Serial.print("Bend complete after ");
-          Serial.print((bendEndTime - repStartTime) / 1000.0, 1);
-          Serial.println("s. Now straightening...");
+          Serial.print("[SQUAT] Peak bend: ");
+          Serial.print(abs(peakBendAngle - startBendAngle));
+          Serial.println(" degrees - Now straightening back up...");
         }
       }
 
@@ -260,7 +320,7 @@ void completeRep(unsigned long endTime) {
   currentRep++;
   lastRepTime = endTime;
   
-  float bendDuration = (bendEndTime - repStartTime) / 1000.0;  // Only bending phase time
+  float repDuration = (endTime - repStartTime) / 1000.0;  // Full rep time from start to finish
   int romAngle = (int)abs(peakBendAngle - startBendAngle);
   
   float avgJerkiness = jerkinessSum / jerkinessCount;
@@ -272,27 +332,35 @@ void completeRep(unsigned long endTime) {
   // Handle calibration logic
   if (isCalibrating && calibrationRep < 5) {
     bool validROM = romAngle >= (targetROM * 0.8);  // 80% of target ROM
-    bool validSpeed = bendDuration <= (targetSpeed / 10.0);  // Convert deg/s to rough time estimate
+    bool validTime = abs(repDuration - targetSpeed) <= 1.5;  // Within 1.5 seconds of target time
     
-    if (validROM) {  // For now, just check ROM - speed validation needs work
+    if (validROM) {  // For now, just check ROM - time validation can be improved
       calibrationAngles[calibrationRep] = romAngle;
-      calibrationSpeeds[calibrationRep] = bendDuration;
+      calibrationSpeeds[calibrationRep] = repDuration;
       calibrationRep++;
       
-      Serial.print("✓ Calibration ");
+      Serial.print("[ACCEPT] Calibration ");
       Serial.print(calibrationRep);
-      Serial.print("/5 ACCEPTED - ROM:");
+      Serial.print("/5 ACCEPTED:");
+      Serial.print(" ROM: ");
       Serial.print(romAngle);
-      Serial.print("° Speed:");
-      Serial.print(bendDuration, 1);
-      Serial.println("s");
+      Serial.print(" deg, Time: ");
+      Serial.print(repDuration, 1);
+      Serial.print("s");
+      if (calibrationRep < 5) {
+        Serial.println(" - Continue with next squat");
+      } else {
+        Serial.println(" - Final calibration squat!");
+      }
       
       calibrationChar.writeValue(1); // Progress signal
     } else {
-      Serial.print("✗ Calibration REJECTED - ROM:");
+      Serial.print("[REJECT] Calibration REJECTED:");
+      Serial.print(" ROM: ");
       Serial.print(romAngle);
-      Serial.print("° < required ");
-      Serial.println(targetROM * 0.8, 1);
+      Serial.print(" deg (need >=");
+      Serial.print(targetROM * 0.8, 1);
+      Serial.println(" deg) - Try deeper squat");
     }
     
     if (calibrationRep >= 5) {
@@ -305,34 +373,68 @@ void completeRep(unsigned long endTime) {
       avgROM /= 5.0;
       avgSpeed /= 5.0;
       
-      Serial.println("=== CALIBRATION COMPLETE ===");
-      Serial.print("Average ROM: ");
+      Serial.println("[COMPLETE] === CALIBRATION COMPLETE! ===");
+      Serial.print("[TARGETS] Your Personal Targets:");
+      Serial.print(" ROM: ");
       Serial.print(avgROM, 1);
-      Serial.print("°, Average Speed: ");
+      Serial.print(" deg, Time: ");
       Serial.print(avgSpeed, 1);
       Serial.println("s");
+      Serial.println("[INFO] These are now your 'Good' standards!");
+      Serial.println("[READY] Ready to start a session - reps will be compared to these targets");
+      Serial.println("=====================================");
       
       calibrationChar.writeValue(2); // Complete signal
       isCalibrating = false;
       calibrationRep = 0;
+      
+      // Send the calibration values to the app via target characteristics
+      targetROMChar.writeValue(avgROM);
+      targetSpeedChar.writeValue(avgSpeed);
+      
       resetSession();
       return;
     }
   }
   
   romChar.writeValue(romAngle);
-  speedChar.writeValue(bendDuration);
+  speedChar.writeValue(repDuration);
   jerkinessChar.writeValue(jerkinessLevel);
   repCountChar.writeValue(currentRep);
   
-  Serial.print("Rep ");
+  // Determine rep quality for user feedback
+  String quality = "Good";
+  if (romAngle < targetROM * 0.8) quality = "Shallow";
+  else if (abs(repDuration - targetSpeed) > 1.0) quality = (repDuration > targetSpeed) ? "Slow" : "Fast";
+  else if (jerkinessLevel > 1) quality = "Jerky";
+  
+  Serial.print("[DONE] Rep ");
   Serial.print(currentRep);
-  Serial.print(" completed - Bend ROM: ");
+  Serial.print("/");
+  Serial.print(targetReps);
+  Serial.print(" COMPLETED - ");
+  Serial.print(quality);
+  Serial.print(" (ROM: ");
   Serial.print(romAngle);
-  Serial.print("°, Speed: ");
-  Serial.print(bendDuration);
-  Serial.print("s, Jerkiness: ");
-  Serial.println(jerkinessLevel);
+  Serial.print(" deg, Time: ");
+  Serial.print(repDuration, 1);
+  Serial.print("s)");
+  
+  // Check if target reps reached
+  if (currentRep >= targetReps) {
+    Serial.println("");
+    Serial.println("[SUCCESS] === SESSION COMPLETE! ===");
+    Serial.print("[ACHIEVED] Target achieved: ");
+    Serial.print(targetReps);
+    Serial.println(" reps completed");
+    Serial.println("[INFO] Check your web app for detailed results");
+    Serial.println("[READY] Ready for new session or calibration");
+    Serial.println("===============================");
+  } else {
+    Serial.print(" - ");
+    Serial.print(targetReps - currentRep);
+    Serial.println(" more to go!");
+  }
 }
 
 void resetSession() {
@@ -349,5 +451,5 @@ void resetSession() {
   jerkinessChar.writeValue(0);
   repCountChar.writeValue(0);
   
-  Serial.println("Session reset");
+  Serial.println("[CLEAR] Session data cleared - ready for new session");
 }

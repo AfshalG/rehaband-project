@@ -284,7 +284,7 @@
                             Calibrate
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center italic" id="sessionControlsStatus">✨ First time? Click "Calibrate" to personalize your targets!</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center italic" id="sessionControlsStatus">First time? Click "Calibrate" to personalize your targets!</p>
                 </div>
 
                 <!-- Session Summary -->
@@ -299,7 +299,7 @@
                     <div class="grid grid-cols-3 gap-4">
                         <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg card-subtle" id="totalRepsStat">
                             <div class="text-2xl font-bold text-gray-900 dark:text-white" id="totalReps">0</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Reps</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide" id="repsLabel">Total Reps</div>
                         </div>
                         <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg card-subtle" id="goodRepsStat">
                             <div class="text-2xl font-bold text-gray-900 dark:text-white" id="goodReps">0</div>
@@ -320,7 +320,7 @@
                     </h2>
                     <p class="text-xs text-gray-500 dark:text-gray-400 text-center mb-4 italic">Changes apply instantly to connected device</p>
                     <div id="demoDisclaimer" class="hidden text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-4">
-                        <strong>Demo Mode:</strong> For best results, set Target ROM to <strong>90°</strong> and Max Speed to <strong>30°/s</strong><br>
+                        <strong>Demo Mode:</strong> For best results, set Target ROM to <strong>90°</strong> and Target Time to <strong>3.0s</strong><br>
                         This will show Rep 1 and Rep 3 as "Good" examples.
                     </div>
                     
@@ -335,11 +335,20 @@
                         </div>
                         
                         <div class="flex justify-between items-center">
-                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Max Speed for "Controlled" Rating</label>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Target Time per Rep</label>
                             <div class="flex items-center gap-2">
                                 <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="speedDecBtn">−</button>
-                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900 dark:text-white" id="speedValue">30<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°/s</span></div>
+                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900 dark:text-white" id="speedValue">3.0<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">s</span></div>
                                 <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="speedIncBtn">+</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Target Reps per Session</label>
+                            <div class="flex items-center gap-2">
+                                <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="repsDecBtn">−</button>
+                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900 dark:text-white" id="repsValue">10<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">reps</span></div>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="repsIncBtn">+</button>
                             </div>
                         </div>
                         
@@ -364,7 +373,7 @@
                             <strong class="font-semibold">Real Device:</strong> 1) Upload Arduino sketch to Nano 33 BLE, 2) Mount device 3cm above kneecap on thigh, 3) Click "Connect to REHABAND", 4) Click "Calibrate" and perform 5 perfect squats, 5) Use "Start Session" to begin tracking
                         </div>
                         <div>
-                            <strong class="font-semibold">Demo:</strong> Click "Try Demo Mode" to see the interface with simulated squat data (set ROM=90°, Speed=30°/s for best demo results)
+                            <strong class="font-semibold">Demo:</strong> Click "Try Demo Mode" to see the interface with simulated squat data (set ROM=90°, Time=3.0s for best demo results)
                         </div>
                     </div>
                 </div>
@@ -446,7 +455,7 @@
         }
         
         let device, server, service;
-        let romChar, speedChar, jerkinessChar, repCountChar, sessionControlChar, calibrationChar, targetROMChar, targetSpeedChar;
+        let romChar, speedChar, jerkinessChar, repCountChar, sessionControlChar, calibrationChar, targetROMChar, targetSpeedChar, targetRepsChar;
         let repsData = [];
         let sessionStartTime;
         let lastRepCount = 0;
@@ -458,7 +467,8 @@
         // Settings variables  
         let settings = {
             targetROM: 95,
-            speedTarget: 30.0, // Now angular velocity in deg/s (lower = more controlled)
+            timeTarget: 3.0, // Target time per rep in seconds (lower = faster)
+            targetReps: 10, // Target reps per session
             soundAlerts: true
         };
 
@@ -479,6 +489,9 @@
         const speedDecBtn = document.getElementById('speedDecBtn');
         const speedIncBtn = document.getElementById('speedIncBtn');
         const speedValue = document.getElementById('speedValue');
+        const repsDecBtn = document.getElementById('repsDecBtn');
+        const repsIncBtn = document.getElementById('repsIncBtn');
+        const repsValue = document.getElementById('repsValue');
         const soundToggleBtn = document.getElementById('soundToggleBtn');
         const demoDisclaimer = document.getElementById('demoDisclaimer');
         const calibrateBtn = document.getElementById('calibrateBtn');
@@ -493,8 +506,10 @@
         // Settings event listeners
         romDecBtn.addEventListener('click', () => adjustSetting('rom', -5));
         romIncBtn.addEventListener('click', () => adjustSetting('rom', 5));
-        speedDecBtn.addEventListener('click', () => adjustSetting('speed', -2.0)); // Adjust by 2 deg/s
-        speedIncBtn.addEventListener('click', () => adjustSetting('speed', 2.0));
+        speedDecBtn.addEventListener('click', () => adjustSetting('time', -0.2)); // Adjust by 0.2 seconds
+        speedIncBtn.addEventListener('click', () => adjustSetting('time', 0.2));
+        repsDecBtn.addEventListener('click', () => adjustSetting('reps', -1));
+        repsIncBtn.addEventListener('click', () => adjustSetting('reps', 1));
         soundToggleBtn.addEventListener('click', toggleSoundAlerts);
 
         // Check if Web Bluetooth is supported
@@ -503,7 +518,10 @@
             connectBtn.disabled = true;
         }
 
-        const isConnected = () => device && device.gatt && device.gatt.connected;
+        // Function to check if device is connected
+        function isConnected() {
+            return device && device.gatt && device.gatt.connected;
+        }
 
         async function connectToDevice() {
             try {
@@ -545,6 +563,7 @@
                     calibrationChar = await service.getCharacteristic(0x2A3C);
                     targetROMChar = await service.getCharacteristic(0x2A3D);
                     targetSpeedChar = await service.getCharacteristic(0x2A3E);
+                    targetRepsChar = await service.getCharacteristic(0x2A3F);
                     console.log('Calibration characteristics available');
                 } catch (error) {
                     console.log('Calibration characteristics not available:', error.message);
@@ -577,7 +596,7 @@
                 startResetBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
                 calibrateBtn.disabled = false;
                 calibrateBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
-                sessionControlsStatus.textContent = '✨ First time? Click "Calibrate" to personalize your targets!';
+                sessionControlsStatus.textContent = 'First time? Click "Calibrate" to personalize your targets!';
                 
                 sessionStartTime = Date.now();
                 updateDuration();
@@ -589,7 +608,15 @@
 
             } catch (error) {
                 console.error('Connection failed:', error);
-                showError(`Connection failed: ${error.message}`);
+                let errorMsg = 'Connection failed';
+                if (error.message) {
+                    errorMsg += `: ${error.message}`;
+                } else if (error.name) {
+                    errorMsg += `: ${error.name}`;
+                } else {
+                    errorMsg += ': Unknown error occurred';
+                }
+                showError(errorMsg);
                 resetConnectionState();
             }
         }
@@ -599,7 +626,9 @@
                 const repNumber = event.target.value.getUint8(0);
                 
                 // Only process if it's a new rep
-                if (repNumber > lastRepCount && repNumber <= 10) {
+                // Use different limits for calibration vs session
+                const repLimit = isCalibrating ? 5 : settings.targetReps;
+                if (repNumber > lastRepCount && repNumber <= repLimit) {
                     lastRepCount = repNumber;
                     
                     // Read other characteristics
@@ -608,13 +637,23 @@
                     const jerkinessValue = await jerkinessChar.readValue();
 
                     const rom = romValue.getUint8(0);
-                    const speed = speedValue.getFloat32(0, true); // Now angular velocity (deg/s)
+                    const speed = speedValue.getFloat32(0, true); // Now rep time (seconds)
                     const jerkiness = jerkinessValue.getFloat32(0, true); // Now RMS jerk value
 
-                    console.log(`Rep ${repNumber}: ROM=${rom}°, Speed=${speed}s, Jerkiness=${jerkiness}`);
+                    console.log(`Rep ${repNumber}: ROM=${rom}°, Time=${speed}s, Jerkiness=${jerkiness}`);
                     
                     addRepCard(repNumber, rom, speed, jerkiness);
                     updateSummary();
+                    
+                    // Check if session is complete (only for non-calibration sessions)
+                    if (!isCalibrating && repNumber >= settings.targetReps) {
+                        showError(`Session complete! You've reached your target of ${settings.targetReps} reps.`);
+                        setTimeout(() => {
+                            if (isSessionActive) {
+                                toggleSession(); // Auto-reset session
+                            }
+                        }, 3000);
+                    }
                 }
             } catch (error) {
                 console.error('Error handling rep data:', error);
@@ -659,16 +698,16 @@
                         
                         // Update settings with calibrated values
                         settings.targetROM = Math.round(newROM);
-                        settings.speedTarget = parseFloat(newSpeed.toFixed(1));
+                        settings.timeTarget = parseFloat(newSpeed.toFixed(1));
                         
                         // Update display
                         updateSettingDisplay('rom', settings.targetROM);
-                        updateSettingDisplay('speed', settings.speedTarget);
+                        updateSettingDisplay('time', settings.timeTarget);
                         
                         // Save to localStorage
                         saveSettings();
                         
-                        console.log(`Calibration updated: ROM=${settings.targetROM}°, Speed=${settings.speedTarget}°/s`);
+                        console.log(`Calibration updated: ROM=${settings.targetROM}°, Time=${settings.timeTarget}s`);
                     }
                     
                     // Reset calibration state
@@ -680,7 +719,7 @@
                     sessionControlsStatus.textContent = 'Calibration complete! Ready for sessions';
                     lucide.createIcons();
                     
-                    showError(`Calibration complete! New targets: ${settings.targetROM}° ROM, ${settings.speedTarget}°/s speed`);
+                    showError(`Calibration complete! New targets: ${settings.targetROM}° ROM, ${settings.timeTarget}s time`);
                     setTimeout(hideError, 5000);
                 }
             } catch (error) {
@@ -714,18 +753,18 @@
                 jerkinessStatus = 'bad';
             }
             
-            // Determine speed text and status using angular velocity (deg/s)
-            // Lower speed = more controlled = better for rehabilitation
-            const speedTarget = settings.speedTarget; // Now in deg/s
+            // Determine time text and status using rep duration (seconds)
+            // Time close to target = better for rehabilitation
+            const timeTarget = settings.timeTarget; // Target time in seconds
             let speedText, speedStatus;
-            if (speed <= speedTarget) {
-                speedText = 'Controlled';
+            if (Math.abs(speed - timeTarget) <= 0.5) {
+                speedText = 'On Target';
                 speedStatus = 'good';
-            } else if (speed <= speedTarget * 1.5) {
-                speedText = 'Moderate';
+            } else if (Math.abs(speed - timeTarget) <= 1.0) {
+                speedText = 'Close';
                 speedStatus = 'caution';
             } else {
-                speedText = 'Too Fast';
+                speedText = speed < timeTarget ? 'Too Fast' : 'Too Slow';
                 speedStatus = 'bad';
             }
             
@@ -739,7 +778,7 @@
             const overallBadge = (romStatus === 'good' && speedStatus === 'good' && jerkinessStatus === 'good') ? 'good' :
                                  (romStatus === 'bad' || speedStatus === 'bad' || jerkinessStatus === 'bad') ? 'bad' : 'caution';
 
-            console.log(`Rep ${repNum}: ROM=${rom}° (${romStatus}), Speed=${speed}s (${speedStatus}), Jerkiness=${jerkiness} (${jerkinessStatus}) → Overall: ${overallBadge}`);
+            console.log(`Rep ${repNum}: ROM=${rom}° (${romStatus}), Time=${speed}s (${speedStatus}), Jerkiness=${jerkiness} (${jerkinessStatus}) → Overall: ${overallBadge}`);
 
             const badgeColors = {
                 good: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
@@ -773,7 +812,7 @@
                         <div class="font-semibold ${valueColors[romStatus]} px-2 py-1 rounded">${rom}°</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-gray-500 dark:text-gray-400 text-xs">Speed</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs">Time</div>
                         <div class="font-semibold ${valueColors[speedStatus]} px-2 py-1 rounded">${speedText}</div>
                     </div>
                     <div class="text-center">
@@ -796,8 +835,10 @@
         }
 
         function updateSummary() {
-            // Update total reps
-            document.getElementById('totalReps').textContent = repsData.length;
+            // Update total reps with progress format
+            const currentReps = repsData.length;
+            document.getElementById('totalReps').textContent = `${currentReps}/${settings.targetReps}`;
+            document.getElementById('repsLabel').textContent = 'Progress';
             animateStatUpdate('totalRepsStat');
             
             // Update good reps count
@@ -978,6 +1019,35 @@
         }
 
         // Calibration Functions
+        async function stopCalibration() {
+            isCalibrating = false;
+            calibrationData = [];
+            calibrationCount = 0;
+            
+            // Send calibration stop command to Arduino
+            if (calibrationChar) {
+                try {
+                    await writeCharacteristicWithRetry(calibrationChar, new Uint8Array([0]));
+                    console.log('Calibration stop command sent to Arduino');
+                } catch (error) {
+                    console.error('Failed to send calibration stop command:', error);
+                }
+            }
+            
+            // Reset button state
+            calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrate';
+            calibrateBtn.classList.remove('bg-danger-gradient');
+            calibrateBtn.classList.add('bg-primary-gradient');
+            calibrateBtn.disabled = false;
+            sessionControlsStatus.textContent = 'Calibration stopped. Ready to start session or calibrate';
+            
+            // Clear rep history
+            repContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-sm">Calibration stopped. Start exercising to see data!</p></div>';
+            
+            showError('Calibration stopped manually.');
+            lucide.createIcons();
+        }
+
         async function startCalibration() {
             if (!device || !device.gatt.connected) {
                 showError('Please connect to REHABAND device first');
@@ -985,7 +1055,8 @@
             }
             
             if (isCalibrating) {
-                showError('Calibration already in progress');
+                // Stop calibration
+                await stopCalibration();
                 return;
             }
             
@@ -993,10 +1064,10 @@
             calibrationData = [];
             calibrationCount = 0;
             
-            calibrateBtn.innerHTML = '<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrating... (0/5)';
+            calibrateBtn.innerHTML = '<i data-lucide="square" class="w-4 h-4 mr-2"></i>Stop Calibration';
             calibrateBtn.classList.remove('bg-primary-gradient');
             calibrateBtn.classList.add('bg-danger-gradient');
-            calibrateBtn.disabled = true;
+            calibrateBtn.disabled = false;
             sessionControlsStatus.textContent = 'Calibrating... Perform 5 good form squats';
             
             // Send calibration start command to Arduino with retry logic
@@ -1039,7 +1110,8 @@
             calibrationCount++;
             calibrationData.push({ rom, speed, jerkiness });
             
-            calibrateBtn.innerHTML = `<i data-lucide="target" class="w-4 h-4 mr-2"></i>Calibrating... (${calibrationCount}/5)`;
+            calibrateBtn.innerHTML = `<i data-lucide="square" class="w-4 h-4 mr-2"></i>Stop Calibration (${calibrationCount}/5)`;
+            sessionControlsStatus.textContent = `Calibration progress: ${calibrationCount}/5 squats completed`;
             lucide.createIcons();
             
             if (calibrationCount >= 5) {
@@ -1056,11 +1128,11 @@
             
             // Update settings with calibrated values
             settings.targetROM = avgROM;
-            settings.speedTarget = avgSpeed;
+            settings.timeTarget = avgSpeed;
             
             // Update display
             updateSettingDisplay('rom', avgROM);
-            updateSettingDisplay('speed', avgSpeed);
+            updateSettingDisplay('time', avgSpeed);
             
             // Save to localStorage
             saveSettings();
@@ -1080,7 +1152,7 @@
             // Clear rep history
             repContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-sm">Calibration complete! Start exercising to see data!</p></div>';
             
-            showError(`Calibration complete! New targets: ${avgROM}° ROM, ${avgSpeed}s speed`);
+            showError(`Calibration complete! New targets: ${avgROM}° ROM, ${avgSpeed}s time`);
             setTimeout(hideError, 5000);
             lucide.createIcons();
         }
@@ -1112,11 +1184,11 @@
 
         function simulateReps() {
             const demoReps = [
-                { rep: 1, rom: 90, speed: 25.0, jerkiness: 40.0 }, // Good squat (parallel squat, controlled speed, smooth)
-                { rep: 2, rom: 70, speed: 42.0, jerkiness: 120.0 }, // Caution squat (shallow squat, moderate speed, some jerk)
-                { rep: 3, rom: 95, speed: 28.0, jerkiness: 45.0 }, // Good squat (good depth, controlled speed, smooth)
-                { rep: 4, rom: 45, speed: 55.0, jerkiness: 200.0 }, // Poor squat (quarter squat - too shallow, too fast, jerky)
-                { rep: 5, rom: 80, speed: 40.0, jerkiness: 100.0 }, // Caution squat (decent depth, moderate speed, some jerk)
+                { rep: 1, rom: 90, speed: 3.0, jerkiness: 40.0 }, // Good squat (parallel squat, on target time, smooth)
+                { rep: 2, rom: 70, speed: 2.2, jerkiness: 120.0 }, // Caution squat (shallow squat, too fast, some jerk)
+                { rep: 3, rom: 95, speed: 3.2, jerkiness: 45.0 }, // Good squat (good depth, close to target time, smooth)
+                { rep: 4, rom: 45, speed: 1.8, jerkiness: 200.0 }, // Poor squat (quarter squat - too shallow, too fast, jerky)
+                { rep: 5, rom: 80, speed: 4.5, jerkiness: 100.0 }, // Caution squat (decent depth, too slow, some jerk)
             ];
 
             let currentRep = 0;
@@ -1187,11 +1259,12 @@
 
         // Settings Management Functions
         async function sendSettingsToArduino() {
-            if (targetROMChar && targetSpeedChar && isConnected()) {
+            if (targetROMChar && targetSpeedChar && targetRepsChar && isConnected()) {
                 try {
                     await writeCharacteristicWithRetry(targetROMChar, new Float32Array([settings.targetROM]));
-                    await writeCharacteristicWithRetry(targetSpeedChar, new Float32Array([settings.speedTarget]));
-                    console.log(`Settings sent to Arduino: ROM=${settings.targetROM}°, Speed=${settings.speedTarget}°/s`);
+                    await writeCharacteristicWithRetry(targetSpeedChar, new Float32Array([settings.timeTarget]));
+                    await writeCharacteristicWithRetry(targetRepsChar, new Uint8Array([settings.targetReps]));
+                    console.log(`Settings sent to Arduino: ROM=${settings.targetROM}°, Time=${settings.timeTarget}s, Reps=${settings.targetReps}`);
                 } catch (error) {
                     console.error('Failed to send settings to Arduino:', error);
                 }
@@ -1202,9 +1275,12 @@
             if (type === 'rom') {
                 settings.targetROM = Math.max(30, Math.min(150, settings.targetROM + change));
                 updateSettingDisplay('rom', settings.targetROM);
-            } else if (type === 'speed') {
-                settings.speedTarget = Math.max(20.0, Math.min(50.0, parseFloat((settings.speedTarget + change).toFixed(1))));
-                updateSettingDisplay('speed', settings.speedTarget);
+            } else if (type === 'time') {
+                settings.timeTarget = Math.max(1.0, Math.min(10.0, parseFloat((settings.timeTarget + change).toFixed(1))));
+                updateSettingDisplay('time', settings.timeTarget);
+            } else if (type === 'reps') {
+                settings.targetReps = Math.max(1, Math.min(20, settings.targetReps + change));
+                updateSettingDisplay('reps', settings.targetReps);
             }
             
             // Save to localStorage
@@ -1220,13 +1296,15 @@
         function updateSettingDisplay(type, value) {
             if (type === 'rom') {
                 romValue.innerHTML = `${value}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°</span>`;
-            } else if (type === 'speed') {
-                speedValue.innerHTML = `${Math.round(value)}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°/s</span>`;
+            } else if (type === 'time') {
+                speedValue.innerHTML = `${value.toFixed(1)}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">s</span>`;
+            } else if (type === 'reps') {
+                repsValue.innerHTML = `${value}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">reps</span>`;
             }
         }
 
         function animateSettingChange(type) {
-            const element = type === 'rom' ? romValue : speedValue;
+            const element = type === 'rom' ? romValue : type === 'time' ? speedValue : repsValue;
             element.classList.add('ring-2', 'ring-blue-300');
             setTimeout(() => {
                 element.classList.remove('ring-2', 'ring-blue-300');
@@ -1242,12 +1320,15 @@
             if (saved) {
                 const savedSettings = JSON.parse(saved);
                 settings.targetROM = savedSettings.targetROM || 95;
-                settings.speedTarget = savedSettings.speedTarget || 30.0;
+                // Support both old speedTarget and new timeTarget for backward compatibility
+                settings.timeTarget = savedSettings.timeTarget || (savedSettings.speedTarget ? 3.0 : 3.0);
+                settings.targetReps = savedSettings.targetReps || 10;
                 settings.soundAlerts = savedSettings.soundAlerts !== undefined ? savedSettings.soundAlerts : true;
                 
                 // Update display
                 updateSettingDisplay('rom', settings.targetROM);
-                updateSettingDisplay('speed', settings.speedTarget);
+                updateSettingDisplay('time', settings.timeTarget);
+                updateSettingDisplay('reps', settings.targetReps);
                 updateSoundToggleDisplay();
             }
         }
