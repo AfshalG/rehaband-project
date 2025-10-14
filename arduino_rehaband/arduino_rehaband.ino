@@ -27,7 +27,8 @@ unsigned long lastTime = 0;
 
 
 // State machine and angle tracking variables
-int exerciseState = 0;      // 0: IDLE, 1: BENDING, 2: STRAIGHTENING
+int deviceState = 0;        // 0: IDLE (connected but not active), 1: READY (session started), 2: CALIBRATING
+int exerciseState = 0;      // 0: WAITING, 1: BENDING, 2: STRAIGHTENING
 float startBendAngle = 0;   // Angle at the start of the bend
 float peakBendAngle = 0;    // Lowest angle achieved during the bend
 unsigned long bendEndTime = 0;  // NEW: Track when bending phase ends
@@ -46,9 +47,9 @@ float targetROM = 90.0;   // Default - will be updated from app settings
 float targetSpeed = 30.0; // Default - will be updated from app settings
 int targetReps = 10;      // Default - will be updated from app settings
 
-// Calibration and thresholds
-const float ANGLE_THRESHOLD = 30.0;  // Minimum angle change to count as rep
-const float GYRO_THRESHOLD = 30.0;   // Reduced - more sensitive movement detection
+// Calibration and thresholds - made more sensitive
+const float ANGLE_THRESHOLD = 25.0;  // Minimum angle change to count as rep (reduced from 30)
+const float GYRO_THRESHOLD = 20.0;   // More sensitive movement detection (reduced from 30)
 const int MIN_REP_TIME = 1000;       // Minimum rep time in milliseconds
 const int MAX_REP_TIME = 10000;      // Increased - allow longer reps
 
@@ -128,22 +129,25 @@ void loop() {
     Serial.println("[CONNECT] CONNECTED to web app!");
     Serial.print("[INFO] Device MAC: ");
     Serial.println(central.address());
-    Serial.println("[STATUS] Ready for calibration or session");
+    Serial.println("[STATUS] Device IDLE - Click 'Calibrate' or 'Start Session' to begin");
     
     while (central.connected()) {
       // Handle session control
       if (sessionControlChar.written()) {
         int command = sessionControlChar.value();
         if (command == 1) {
-          // Start session - reset everything
+          // Start session - reset everything and set device to READY
+          deviceState = 1; // READY for session
           resetSession();
           Serial.println("[SESSION] SESSION STARTED!");
           Serial.println("[INFO] Current angle set as reference (0 degrees)");
           Serial.println("[INFO] Begin squatting - reps will be tracked automatically");
           Serial.println("------------------------------------");
         } else if (command == 0) {
+          // Reset session - go back to IDLE
+          deviceState = 0; // IDLE
           resetSession();
-          Serial.println("[SESSION] SESSION RESET - Ready for new session");
+          Serial.println("[SESSION] SESSION RESET - Device now IDLE, ready for calibration or session");
         }
       }
       
@@ -151,6 +155,7 @@ void loop() {
       if (calibrationChar.written()) {
         int command = calibrationChar.value();
         if (command == 1 && !isCalibrating) {
+          deviceState = 2; // CALIBRATING
           isCalibrating = true;
           calibrationRep = 0;
           resetSession();
@@ -163,12 +168,13 @@ void loop() {
           Serial.println("[START] Begin your first calibration squat now!");
           Serial.println("=====================================");
         } else if (command == 0 && isCalibrating) {
-          // Stop calibration
+          // Stop calibration - go back to IDLE
+          deviceState = 0; // IDLE
           isCalibrating = false;
           calibrationRep = 0;
           resetSession();
           Serial.println("[STOP] CALIBRATION STOPPED manually");
-          Serial.println("[STATUS] Ready for new calibration or session");
+          Serial.println("[STATUS] Device now IDLE, ready for new calibration or session");
           Serial.println("=====================================");
         }
       }
@@ -198,7 +204,12 @@ void loop() {
       }
       
       readIMU();
-      trackExercise();
+      
+      // Only track exercise when device is active (not IDLE)
+      if (deviceState > 0) {
+        trackExercise();
+      }
+      
       delay(50);
     }
     
@@ -208,7 +219,8 @@ void loop() {
     Serial.println("[RESET] Session reset - ready for reconnection");
     Serial.println("[BLE] Advertising as 'REHABAND' again...");
     
-    // Reset session when device disconnects
+    // Reset session and device state when device disconnects
+    deviceState = 0; // Back to IDLE
     resetSession();
   }
 }
@@ -263,13 +275,17 @@ void trackExercise() {
         if (isCalibrating) {
           Serial.print("[CAL] Rep ");
           Serial.print(calibrationRep + 1);
-          Serial.println("/5 - Starting squat...");
+          Serial.print("/5 - Starting squat from ");
+          Serial.print(startBendAngle);
+          Serial.println(" degrees");
         } else {
           Serial.print("[REP] Rep ");
           Serial.print(currentRep + 1);
           Serial.print("/");
           Serial.print(targetReps);
-          Serial.println(" - Starting squat...");
+          Serial.print(" - Starting squat from ");
+          Serial.print(startBendAngle);
+          Serial.println(" degrees");
         }
       }
       break;
@@ -282,11 +298,11 @@ void trackExercise() {
         peakBendAngle = currentAngle;
       }
       
-      // More conservative bend ending - require lower movement AND minimum time
-      if (totalGyro < GYRO_THRESHOLD / 3 && (currentTime - repStartTime) > 800) {
+      // Detect end of bending phase - more sensitive detection
+      if (totalGyro < GYRO_THRESHOLD / 2 && (currentTime - repStartTime) > 600) {
         if (abs(peakBendAngle - startBendAngle) > ANGLE_THRESHOLD) {
           exerciseState = 2;
-          bendEndTime = currentTime;  // NEW: Record when bending ends
+          bendEndTime = currentTime;  // Record when bending ends
           Serial.print("[SQUAT] Peak bend: ");
           Serial.print(abs(peakBendAngle - startBendAngle));
           Serial.println(" degrees - Now straightening back up...");
@@ -303,7 +319,15 @@ void trackExercise() {
       jerkinessSum += totalGyro;
       jerkinessCount++;
 
-      if (totalGyro < GYRO_THRESHOLD / 2 && abs(currentAngle - startBendAngle) < 15) {
+      // More sensitive straightening detection
+      // Check if we're close to starting position (within 20 degrees) AND movement has slowed down
+      float angleDiff = abs(currentAngle - startBendAngle);
+      if (totalGyro < GYRO_THRESHOLD && angleDiff < 20) {
+        Serial.print("[COMPLETE] Rep completed - back to ");
+        Serial.print(currentAngle);
+        Serial.print(" degrees (diff: ");
+        Serial.print(angleDiff);
+        Serial.println(")");
         completeRep(currentTime);
         exerciseState = 0;
       }
@@ -387,6 +411,7 @@ void completeRep(unsigned long endTime) {
       calibrationChar.writeValue(2); // Complete signal
       isCalibrating = false;
       calibrationRep = 0;
+      deviceState = 0; // Back to IDLE after calibration
       
       // Send the calibration values to the app via target characteristics
       targetROMChar.writeValue(avgROM);
