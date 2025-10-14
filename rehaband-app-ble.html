@@ -11,6 +11,7 @@
     <!-- Custom Tailwind Config -->
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -28,6 +29,11 @@
         }
     </script>
     <style>
+        /* Apple System Font */
+        body, .apple-font {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        
         .pulse {
             animation: pulse 2s infinite;
         }
@@ -40,33 +46,53 @@
         
         .bg-primary-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px -3px rgba(102, 126, 234, 0.4);
         }
         
         .bg-success-gradient {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            box-shadow: 0 4px 15px -3px rgba(22, 163, 74, 0.4);
         }
         
         .bg-warning-gradient {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 15px -3px rgba(245, 158, 11, 0.4);
         }
         
         .bg-danger-gradient {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 15px -3px rgba(239, 68, 68, 0.4);
         }
         
         /* Button hover effects */
         .btn-hover {
-            transition: all 0.2s ease-in-out;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .btn-hover:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px) scale(1.02);
+            filter: brightness(1.1);
         }
         
         .btn-hover:active:not(:disabled) {
-            transform: translateY(0);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(0) scale(1);
+            filter: brightness(1);
+        }
+        
+        .bg-primary-gradient:hover {
+            box-shadow: 0 8px 25px -3px rgba(102, 126, 234, 0.5);
+        }
+        
+        .bg-success-gradient:hover {
+            box-shadow: 0 8px 25px -3px rgba(22, 163, 74, 0.5);
+        }
+        
+        .bg-warning-gradient:hover {
+            box-shadow: 0 8px 25px -3px rgba(245, 158, 11, 0.5);
+        }
+        
+        .bg-danger-gradient:hover {
+            box-shadow: 0 8px 25px -3px rgba(239, 68, 68, 0.5);
         }
         
         /* shadcn/ui inspired borders and shadows */
@@ -77,20 +103,42 @@
             backdrop-filter: blur(8px);
         }
         
+        .dark .card-elegant {
+            border: 1px solid hsl(214.3 31.8% 20%);
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+            background: rgba(31, 41, 55, 0.8);
+        }
+        
         .card-elevated {
-            border: 1px solid hsl(214.3 31.8% 91.4%);
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid hsl(214.3 31.8% 85%);
+            box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.15);
+            background: rgba(248, 250, 252, 1);
+        }
+        
+        .dark .card-elevated {
+            border: 1px solid hsl(214.3 31.8% 25%);
+            box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+            background: rgba(31, 41, 55, 0.95);
         }
         
         .card-subtle {
-            border: 1px solid hsl(214.3 31.8% 94%);
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            border: 1px solid hsl(214.3 31.8% 88%);
+            box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.12), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+            background: rgba(241, 245, 249, 1);
+        }
+        
+        .dark .card-subtle {
+            border: 1px solid hsl(214.3 31.8% 22%);
+            box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
         }
         
         .scrollable-area {
             scrollbar-width: thin;
             scrollbar-color: #cbd5e1 transparent;
+        }
+        
+        .dark .scrollable-area {
+            scrollbar-color: #6b7280 transparent;
         }
         
         .scrollable-area::-webkit-scrollbar {
@@ -106,33 +154,90 @@
             border-radius: 3px;
         }
         
+        .dark .scrollable-area::-webkit-scrollbar-thumb {
+            background-color: #6b7280;
+        }
+        
         .scrollable-area::-webkit-scrollbar-thumb:hover {
             background-color: #94a3b8;
         }
         
-        /* Apple-inspired background */
+        .dark .scrollable-area::-webkit-scrollbar-thumb:hover {
+            background-color: #9ca3af;
+        }
+        
+        /* Apple-inspired background with visible futuristic purple */
         .apple-bg {
             background: 
-                radial-gradient(ellipse 80% 50% at 20% -20%, rgba(120, 119, 198, 0.3), transparent),
+                radial-gradient(ellipse 100% 60% at 10% -10%, rgba(147, 51, 234, 0.12), transparent),
+                radial-gradient(ellipse 90% 70% at 90% 110%, rgba(168, 85, 247, 0.15), transparent),
+                radial-gradient(ellipse 70% 50% at 30% 30%, rgba(196, 181, 253, 0.1), transparent),
+                radial-gradient(ellipse 60% 40% at 70% 80%, rgba(139, 92, 246, 0.08), transparent),
+                radial-gradient(ellipse 80% 50% at 20% -20%, rgba(120, 119, 198, 0.18), transparent),
                 radial-gradient(ellipse 80% 50% at 80% 120%, rgba(255, 255, 255, 0.3), transparent),
                 radial-gradient(ellipse 60% 40% at 40% 40%, rgba(120, 119, 198, 0.15), transparent),
                 linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
             min-height: 100vh;
             backdrop-filter: blur(20px);
         }
+        
+        .dark .apple-bg {
+            background: 
+                radial-gradient(ellipse 100% 60% at 10% -10%, rgba(147, 51, 234, 0.12), transparent),
+                radial-gradient(ellipse 90% 70% at 90% 110%, rgba(168, 85, 247, 0.1), transparent),
+                radial-gradient(ellipse 70% 50% at 30% 30%, rgba(196, 181, 253, 0.06), transparent),
+                radial-gradient(ellipse 60% 40% at 70% 80%, rgba(139, 92, 246, 0.08), transparent),
+                radial-gradient(ellipse 80% 50% at 20% -20%, rgba(67, 56, 202, 0.15), transparent),
+                radial-gradient(ellipse 80% 50% at 80% 120%, rgba(55, 65, 81, 0.4), transparent),
+                radial-gradient(ellipse 60% 40% at 40% 40%, rgba(67, 56, 202, 0.1), transparent),
+                linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%);
+        }
+        
+        /* Header gradient blend effect */
+        .header-gradient-blend {
+            position: relative;
+        }
+        
+        .header-gradient-blend::before {
+            content: '';
+            position: absolute;
+            top: -80px;
+            left: -60px;
+            right: -60px;
+            bottom: -60px;
+            background: 
+                radial-gradient(ellipse 140% 100% at 50% 50%, rgba(14, 165, 233, 0.2), transparent),
+                radial-gradient(ellipse 120% 80% at 30% 40%, rgba(59, 130, 246, 0.15), transparent),
+                radial-gradient(ellipse 100% 60% at 70% 60%, rgba(3, 105, 161, 0.12), transparent);
+            border-radius: 3rem;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .dark .header-gradient-blend::before {
+            background: 
+                radial-gradient(ellipse 140% 100% at 50% 50%, rgba(102, 126, 234, 0.25), transparent),
+                radial-gradient(ellipse 120% 80% at 30% 40%, rgba(118, 75, 162, 0.2), transparent),
+                radial-gradient(ellipse 100% 60% at 70% 60%, rgba(102, 126, 234, 0.15), transparent);
+        }
     </style>
 </head>
-<body class="apple-bg">
-    <div class="max-w-7xl mx-auto p-4 lg:p-8">
+<body class="apple-bg dark:bg-gray-900 dark:text-white">
+    <div class="max-w-7xl mx-auto p-6 lg:p-10">
         <!-- Header -->
-        <header class="bg-primary-gradient text-white rounded-xl shadow-lg mb-6 overflow-hidden">
+        <header class="bg-primary-gradient text-white rounded-xl shadow-lg dark:shadow-2xl mb-6 overflow-hidden header-gradient-blend">
             <div class="px-6 py-4">
                 <div class="flex justify-between items-center mb-2">
                     <h1 class="text-2xl font-bold flex items-center gap-2">
                         <i data-lucide="activity" class="w-6 h-6"></i>
                         REHABAND
                     </h1>
-                    <span class="bg-white/20 text-xs px-3 py-1 rounded-full">Live Session</span>
+                    <div class="flex items-center gap-3">
+                        <button id="themeToggle" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 hover:shadow-lg hover:shadow-white/20 transition-all duration-300 btn-hover" title="Toggle dark mode">
+                            <i data-lucide="sun" class="w-4 h-4" id="themeIcon"></i>
+                        </button>
+                        <span class="bg-white/20 text-xs px-3 py-1 rounded-full">Live Session</span>
+                    </div>
                 </div>
                 <div class="flex items-center text-sm opacity-90">
                     <div class="w-2 h-2 bg-red-400 rounded-full mr-2 transition-colors duration-300" id="statusDot"></div>
@@ -142,12 +247,12 @@
         </header>
 
         <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[calc(100vh-200px)]">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 min-h-[calc(100vh-220px)]">
             <!-- Left Column - Controls & Data -->
-            <div class="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto bg-gradient-to-br from-white/60 to-gray-50/40 rounded-2xl p-6 backdrop-blur-sm scrollable-area flex flex-col justify-start items-center">
+            <div class="space-y-7 max-h-[calc(100vh-200px)] overflow-y-auto bg-gradient-to-br from-white/60 to-white/50 dark:from-gray-800/60 dark:to-gray-900/40 rounded-2xl p-7 backdrop-blur-sm scrollable-area flex flex-col justify-start items-center">
                 <!-- Connection Buttons -->
-                <div class="bg-white rounded-xl card-elevated p-6 w-full">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl card-elevated p-6 w-full">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <i data-lucide="bluetooth" class="w-5 h-5"></i>
                         Device Connection
                     </h2>
@@ -164,8 +269,8 @@
                 </div>
 
                 <!-- Session Controls -->
-                <div class="bg-white rounded-xl card-elevated p-6 w-full">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl card-elevated p-6 w-full">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <i data-lucide="settings" class="w-5 h-5"></i>
                         Session Controls
                     </h2>
@@ -179,67 +284,67 @@
                             Calibrate
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 text-center italic" id="sessionControlsStatus">✨ First time? Click "Calibrate" to personalize your targets!</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center italic" id="sessionControlsStatus">✨ First time? Click "Calibrate" to personalize your targets!</p>
                 </div>
 
                 <!-- Session Summary -->
-                <div class="bg-white rounded-xl card-elevated p-6 w-full">
+                <div class="bg-white dark:bg-gray-800 rounded-xl card-elevated p-6 w-full">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
                             Session Summary
                         </h2>
-                        <span class="text-xs bg-gray-100 px-3 py-1 rounded-full text-gray-600" id="duration">0 mins</span>
+                        <span class="text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-gray-600 dark:text-gray-300" id="duration">0 mins</span>
                     </div>
                     <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center p-4 bg-gray-50 rounded-lg card-subtle" id="totalRepsStat">
-                            <div class="text-2xl font-bold text-gray-900" id="totalReps">0</div>
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Total Reps</div>
+                        <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg card-subtle" id="totalRepsStat">
+                            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="totalReps">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Reps</div>
                         </div>
-                        <div class="text-center p-4 bg-gray-50 rounded-lg card-subtle" id="goodRepsStat">
-                            <div class="text-2xl font-bold text-gray-900" id="goodReps">0</div>
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Good Form</div>
+                        <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg card-subtle" id="goodRepsStat">
+                            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="goodReps">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Good Form</div>
                         </div>
-                        <div class="text-center p-4 bg-gray-50 rounded-lg card-subtle" id="avgAngleStat">
-                            <div class="text-2xl font-bold text-gray-900" id="avgAngle">--</div>
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Avg Angle</div>
+                        <div class="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg card-subtle" id="avgAngleStat">
+                            <div class="text-2xl font-bold text-gray-900 dark:text-white" id="avgAngle">--</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg Angle</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Settings -->
-                <div class="bg-white rounded-xl card-elevated p-6 w-full">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl card-elevated p-6 w-full">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                         <i data-lucide="sliders" class="w-5 h-5"></i>
                         Adjust Settings
                     </h2>
-                    <p class="text-xs text-gray-500 text-center mb-4 italic">Changes apply instantly to connected device</p>
-                    <div id="demoDisclaimer" class="hidden text-xs text-red-600 bg-red-50 p-3 rounded-lg mb-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center mb-4 italic">Changes apply instantly to connected device</p>
+                    <div id="demoDisclaimer" class="hidden text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-4">
                         <strong>Demo Mode:</strong> For best results, set Target ROM to <strong>90°</strong> and Max Speed to <strong>30°/s</strong><br>
                         This will show Rep 1 and Rep 3 as "Good" examples.
                     </div>
                     
                     <div class="space-y-4">
                         <div class="flex justify-between items-center">
-                            <label class="text-sm font-medium text-gray-700">Target ROM</label>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Target ROM</label>
                             <div class="flex items-center gap-2">
-                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 btn-hover" id="romDecBtn">−</button>
-                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900" id="romValue">95<span class="text-xs text-gray-500 ml-1">°</span></div>
-                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 btn-hover" id="romIncBtn">+</button>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="romDecBtn">−</button>
+                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900 dark:text-white" id="romValue">95<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°</span></div>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="romIncBtn">+</button>
                             </div>
                         </div>
                         
                         <div class="flex justify-between items-center">
-                            <label class="text-sm font-medium text-gray-700">Max Speed for "Controlled" Rating</label>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Max Speed for "Controlled" Rating</label>
                             <div class="flex items-center gap-2">
-                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 btn-hover" id="speedDecBtn">−</button>
-                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900" id="speedValue">30<span class="text-xs text-gray-500 ml-1">°/s</span></div>
-                                <button class="w-8 h-8 rounded-md border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-600 btn-hover" id="speedIncBtn">+</button>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="speedDecBtn">−</button>
+                                <div class="min-w-[50px] text-center text-sm font-semibold text-gray-900 dark:text-white" id="speedValue">30<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°/s</span></div>
+                                <button class="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 btn-hover" id="speedIncBtn">+</button>
                             </div>
                         </div>
                         
                         <div class="flex justify-between items-center">
-                            <label class="text-sm font-medium text-gray-700">Sound Alerts</label>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Sound Alerts</label>
                             <button class="px-4 py-2 rounded-md text-sm font-medium text-white bg-green-500 btn-hover" id="soundToggleBtn">ON</button>
                         </div>
                     </div>
@@ -247,14 +352,14 @@
             </div>
 
             <!-- Right Column - Instructions & History -->
-            <div class="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto bg-gradient-to-bl from-blue-50/30 to-white/50 rounded-2xl p-6 backdrop-blur-sm scrollable-area flex flex-col justify-start items-center">
+            <div class="space-y-7 max-h-[calc(100vh-200px)] overflow-y-auto bg-gradient-to-bl from-blue-50/15 to-white/25 dark:from-gray-800/30 dark:to-gray-700/50 rounded-2xl p-7 backdrop-blur-sm scrollable-area flex flex-col justify-start items-center">
                 <!-- Instructions -->
-                <div class="bg-blue-50 rounded-xl card-elevated border-blue-200 p-6 w-full">
-                    <h2 class="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl card-elevated border-blue-200 dark:border-blue-800 p-6 w-full">
+                    <h2 class="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2">
                         <i data-lucide="info" class="w-5 h-5"></i>
                         Instructions
                     </h2>
-                    <div class="space-y-3 text-sm text-blue-800">
+                    <div class="space-y-3 text-sm text-blue-800 dark:text-blue-200">
                         <div>
                             <strong class="font-semibold">Real Device:</strong> 1) Upload Arduino sketch to Nano 33 BLE, 2) Mount device 3cm above kneecap on thigh, 3) Click "Connect to REHABAND", 4) Click "Calibrate" and perform 5 perfect squats, 5) Use "Start Session" to begin tracking
                         </div>
@@ -265,14 +370,14 @@
                 </div>
 
                 <!-- Rep History -->
-                <div class="bg-white rounded-xl card-elevated p-6 flex flex-col h-full w-full">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl card-elevated p-6 flex flex-col h-full w-full">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <i data-lucide="history" class="w-5 h-5"></i>
                         Rep History
                     </h2>
                     <div id="repContainer" class="flex-1 overflow-y-auto scrollable-area space-y-3 max-h-[400px] min-h-[200px]">
-                        <div class="text-center text-gray-500 py-8" id="noRepsMessage">
-                            <i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
+                        <div class="text-center text-gray-500 dark:text-gray-400 py-8" id="noRepsMessage">
+                            <i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i>
                             <p class="text-sm">No reps yet. Start exercising to see data!</p>
                         </div>
                     </div>
@@ -282,7 +387,7 @@
 
         <!-- Error Message -->
         <div class="fixed bottom-4 right-4 max-w-md hidden" id="errorMessage">
-            <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+            <div class="bg-red-100 dark:bg-red-900/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg shadow-lg">
                 <div class="flex items-center gap-2">
                     <i data-lucide="alert-circle" class="w-5 h-5"></i>
                     <span class="text-sm font-medium">Error Message</span>
@@ -294,6 +399,51 @@
     <script>
         // Initialize Lucide icons
         lucide.createIcons();
+        
+        // Theme Management
+        let currentTheme = 'light';
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+
+        function initializeTheme() {
+            // Check for saved theme preference or default to system preference
+            const savedTheme = localStorage.getItem('rehabandTheme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+            applyTheme(currentTheme);
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('rehabandTheme')) {
+                    currentTheme = e.matches ? 'dark' : 'light';
+                    applyTheme(currentTheme);
+                }
+            });
+        }
+
+        function applyTheme(theme) {
+            currentTheme = theme;
+            
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeIcon.setAttribute('data-lucide', 'moon');
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIcon.setAttribute('data-lucide', 'sun');
+            }
+            
+            // Update icons after changing theme
+            lucide.createIcons();
+            
+            // Save preference
+            localStorage.setItem('rehabandTheme', theme);
+        }
+
+        function toggleTheme() {
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        }
         
         let device, server, service;
         let romChar, speedChar, jerkinessChar, repCountChar, sessionControlChar, calibrationChar, targetROMChar, targetSpeedChar;
@@ -338,6 +488,7 @@
         demoBtn.addEventListener('click', startDemoMode);
         startResetBtn.addEventListener('click', toggleSession);
         calibrateBtn.addEventListener('click', startCalibration);
+        themeToggle.addEventListener('click', toggleTheme);
 
         // Settings event listeners
         romDecBtn.addEventListener('click', () => adjustSetting('rom', -5));
@@ -591,26 +742,26 @@
             console.log(`Rep ${repNum}: ROM=${rom}° (${romStatus}), Speed=${speed}s (${speedStatus}), Jerkiness=${jerkiness} (${jerkinessStatus}) → Overall: ${overallBadge}`);
 
             const badgeColors = {
-                good: 'bg-green-100 text-green-800',
-                caution: 'bg-yellow-100 text-yellow-800', 
-                bad: 'bg-red-100 text-red-800'
+                good: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+                caution: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300', 
+                bad: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
             };
 
             const valueColors = {
-                good: 'text-green-600 bg-green-50',
-                caution: 'text-yellow-600 bg-yellow-50',
-                bad: 'text-red-600 bg-red-50'
+                good: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20',
+                caution: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20',
+                bad: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
             };
 
             const repCard = document.createElement('div');
-            repCard.className = 'bg-white rounded-lg border border-gray-200 p-4 mb-3 shadow-sm hover:shadow-md transition-shadow';
+            repCard.className = 'bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4 mb-3 shadow-sm hover:shadow-md transition-shadow';
             repCard.innerHTML = `
                 <div class="flex justify-between items-center mb-3">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 bg-primary-gradient text-white rounded-full flex items-center justify-center text-sm font-bold">
                             ${repNum}
                         </div>
-                        <span class="font-medium text-gray-900">Rep ${repNum}</span>
+                        <span class="font-medium text-gray-900 dark:text-white">Rep ${repNum}</span>
                     </div>
                     <span class="px-3 py-1 rounded-full text-xs font-medium ${badgeColors[overallBadge]}">
                         ${overallBadge === 'good' ? 'Good' : overallBadge === 'caution' ? 'Caution' : 'Poor'}
@@ -618,15 +769,15 @@
                 </div>
                 <div class="grid grid-cols-3 gap-3 text-sm">
                     <div class="text-center">
-                        <div class="text-gray-500 text-xs">ROM Angle</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs">ROM Angle</div>
                         <div class="font-semibold ${valueColors[romStatus]} px-2 py-1 rounded">${rom}°</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-gray-500 text-xs">Speed</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs">Speed</div>
                         <div class="font-semibold ${valueColors[speedStatus]} px-2 py-1 rounded">${speedText}</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-gray-500 text-xs">Smoothness</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs">Smoothness</div>
                         <div class="font-semibold ${valueColors[jerkinessStatus]} px-2 py-1 rounded">${jerkinessText}</div>
                     </div>
                 </div>
@@ -761,7 +912,7 @@
                 updateSummary();
                 
                 // Clear rep history display
-                repContainer.innerHTML = '<div class="text-center text-gray-500 py-8"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">Session started! Begin exercising to see data.</p></div>';
+                repContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-sm">Session started! Begin exercising to see data.</p></div>';
                 
                 sessionControlsStatus.textContent = 'Session active - exercising...';
                 showError('Session started! Current angle set as reference position.');
@@ -796,7 +947,7 @@
                 document.getElementById('avgAngle').textContent = '--';
                 
                 // Clear rep history display
-                repContainer.innerHTML = '<div class="text-center text-gray-500 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">Session reset. Start exercising to see data!</p></div>';
+                repContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-sm">Session reset. Start exercising to see data!</p></div>';
                 
                 sessionControlsStatus.textContent = 'Ready to start session or calibrate';
                 showError('Session reset successfully!');
@@ -876,7 +1027,7 @@
             lastRepCount = 0;
             
             // Clear rep history
-            repContainer.innerHTML = '<div class="text-center text-blue-600 py-8"><i data-lucide="target" class="w-12 h-12 mx-auto mb-3"></i><p class="text-sm">Calibration in progress... Perform 5 good form squats.</p></div>';
+            repContainer.innerHTML = '<div class="text-center text-blue-600 dark:text-blue-400 py-8"><i data-lucide="target" class="w-12 h-12 mx-auto mb-3"></i><p class="text-sm">Calibration in progress... Perform 5 good form squats.</p></div>';
             
             showError('Calibration started! Perform 5 squats with your best form.');
             lucide.createIcons();
@@ -927,7 +1078,7 @@
             lastRepCount = 0;
             
             // Clear rep history
-            repContainer.innerHTML = '<div class="text-center text-gray-500 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">Calibration complete! Start exercising to see data!</p></div>';
+            repContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-sm">Calibration complete! Start exercising to see data!</p></div>';
             
             showError(`Calibration complete! New targets: ${avgROM}° ROM, ${avgSpeed}s speed`);
             setTimeout(hideError, 5000);
@@ -1028,7 +1179,7 @@
             document.getElementById('duration').textContent = '0 mins';
             
             // Clear rep cards
-            repContainer.innerHTML = '<div class="text-center text-gray-500 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i><p class="text-sm">No reps yet. Start exercising to see data!</p></div>';
+            repContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8" id="noRepsMessage"><i data-lucide="activity" class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600"></i><p class="text-sm">No reps yet. Start exercising to see data!</p></div>';
             
             hideError();
             lucide.createIcons();
@@ -1068,9 +1219,9 @@
 
         function updateSettingDisplay(type, value) {
             if (type === 'rom') {
-                romValue.innerHTML = `${value}<span class="text-xs text-gray-500 ml-1">°</span>`;
+                romValue.innerHTML = `${value}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°</span>`;
             } else if (type === 'speed') {
-                speedValue.innerHTML = `${Math.round(value)}<span class="text-xs text-gray-500 ml-1">°/s</span>`;
+                speedValue.innerHTML = `${Math.round(value)}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">°/s</span>`;
             }
         }
 
@@ -1155,6 +1306,7 @@
         // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             console.log('REHABAND Modern UI loaded with Tailwind CSS');
+            initializeTheme(); // Initialize theme system
             loadSettings(); // Load saved settings on page load
             lucide.createIcons(); // Initialize all icons
         });

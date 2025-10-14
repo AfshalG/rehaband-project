@@ -26,6 +26,13 @@ REHABAND is a smart squat rehabilitation device that:
 - **Mobile Optimized**: Responsive design with improved spacing and layout
 - **Cross-platform**: Works on any device with Chrome/Edge browser
 
+### 🌙 Dark Mode Support (New!)
+- **Smart Theme Detection**: Automatically detects system preference (light/dark)
+- **Manual Toggle**: Sun/moon icon button in header for instant theme switching
+- **Persistent Theme Choice**: Remembers your preference across browser sessions
+- **Consistent Design**: Beautiful gradients and colors optimized for both themes
+- **Professional Aesthetics**: Apple-inspired design with enhanced shadows and depth
+
 ### Advanced Session Control Features
 - **Start/Reset Button**: Control squat sessions with reference angle setting (0° straight leg baseline)
 - **5-Rep Calibration**: Personalized target calculation based on user's best form (90% ROM, 110% speed tolerance)
@@ -62,11 +69,12 @@ cd rehaband-project
 
 ### 1. Try Demo Mode First
 1. Open `rehaband-app-ble.html` in Chrome or Edge (from the cloned folder)
-2. **For best demo results**: Set Target ROM to **90°** and Max Speed to **30°/s** in settings
-3. Click **"Try Demo Mode"** (green button turns red while running)  
-4. Watch as 5 simulated squats appear with realistic knee flexion angles and real-time feedback
-5. Observe how Rep 1 (90°) and Rep 3 (95°) show as "Good" with controlled speed
-6. Adjust settings with +/- controls to see how thresholds affect evaluation
+2. **Toggle Theme**: Click the sun/moon icon in the header to switch between light and dark modes
+3. **For best demo results**: Set Target ROM to **90°** and Max Speed to **30°/s** in settings
+4. Click **"Try Demo Mode"** (green button turns red while running)  
+5. Watch as 5 simulated squats appear with realistic knee flexion angles and real-time feedback
+6. Observe how Rep 1 (90°) and Rep 3 (95°) show as "Good" with controlled speed
+7. Adjust settings with +/- controls to see how thresholds affect evaluation
 
 ### 2. Set Up Arduino (for real data)
 1. Install required libraries in Arduino IDE:
